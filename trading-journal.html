@@ -627,12 +627,7 @@ async function doForgotPassword(){
 }
 
 async function doLogout(){
-  try { await db.auth.signOut({ scope: 'local' }); } catch(e) {}
-  sessionStorage.setItem('tf_logged_out', '1');
-  Object.keys(localStorage).forEach(k => {
-    if(k.startsWith('sb-') || k.includes('supabase')) localStorage.removeItem(k);
-  });
-  window.location.href = window.location.pathname;
+  window.location.href = 'logout.html';
 }
 
 // ══════════════════════════════════════════════════════════
