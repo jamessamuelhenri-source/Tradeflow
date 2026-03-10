@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -605,7 +604,10 @@ async function doSignup(){
   btn.disabled = true; btn.textContent = 'Création...';
   const { error } = await db.auth.signUp({
     email, password: pass,
-    options: { data: { full_name: name } }
+    options: {
+      data: { full_name: name },
+      emailRedirectTo: 'https://jamessamuelhenri-source.github.io/Tradeflow/'
+    }
   });
   btn.disabled = false; btn.textContent = 'Créer mon compte — 14 jours gratuits';
   if(error){ showAuthMsg('❌ ' + error.message, 'error'); return; }
@@ -639,8 +641,8 @@ async function doSubscribe(){
   const { error } = await stripe.redirectToCheckout({
     lineItems: [{ price: STRIPE_PRICE, quantity: 1 }],
     mode: 'subscription',
-    successUrl: window.location.origin + window.location.pathname + '?subscribed=1',
-    cancelUrl:  window.location.href,
+    successUrl: window.location.origin + '/Tradeflow/?subscribed=1',
+    cancelUrl:  window.location.origin + '/Tradeflow/',
     customerEmail: currentUser.email,
   });
   if(error) toast('❌ '+error.message);
