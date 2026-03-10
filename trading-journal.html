@@ -488,23 +488,10 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
     <div class="import-tabs">
       <div class="import-tab active" id="itab-csv" onclick="switchTab('csv')">📄 Import CSV</div>
       <div class="import-tab" id="itab-pdf" onclick="switchTab('pdf')">📋 Import PDF</div>
-      <div class="import-tab" id="itab-api" onclick="switchTab('api')">⚡ API Live</div>
     </div>
 
     <!-- CSV -->
     <div class="import-panel active" id="ipanel-csv">
-
-      <!-- PROP FIRM SELECTOR -->
-      <div style="margin-bottom:14px">
-        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Prop Firm / Compte</div>
-        <div id="propfirm-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
-          <!-- populated by JS -->
-        </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <input type="text" id="pf-custom" placeholder="Autre prop firm..." style="flex:1;font-size:12px;padding:7px 10px">
-          <button class="btn btn-ghost" style="font-size:11px;white-space:nowrap" onclick="selectPropFirm(document.getElementById('pf-custom').value)">+ Ajouter</button>
-        </div>
-      </div>
 
       <!-- INSTRUCTIONS -->
       <div class="info-box green" style="margin-bottom:12px">
@@ -563,68 +550,6 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
       </div>
     </div>
 
-    <!-- API — OAuth Tradovate (comme PropTato) -->
-    <div class="import-panel" id="ipanel-api">
-
-      <!-- EXPLICATION OAUTH -->
-      <div class="info-box green" style="margin-bottom:16px;line-height:1.9">
-        <strong>🔐 Connexion OAuth — comme PropTato</strong><br>
-        <span style="color:var(--text3)">Cliquez sur </span><strong>"Se connecter avec Tradovate"</strong><span style="color:var(--text3)">. Une popup s'ouvre sur </span><strong>trader.tradovate.com</strong><span style="color:var(--text3)"> — vous entrez vos credentials là-bas directement.<br>
-        ✅ Fonctionne avec </span><strong>Apex, TopStep, tous les comptes prop firm</strong><span style="color:var(--text3)"> — aucun mot de passe partagé avec TradeFlow.</span>
-      </div>
-
-      <!-- PERIOD + ENV -->
-      <div style="display:flex;gap:12px;margin-bottom:16px">
-        <div style="flex:1">
-          <label style="display:block;margin-bottom:6px;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Période</label>
-          <select id="ap-days" style="width:100%">
-            <option value="7">7 jours</option>
-            <option value="30" selected>30 jours</option>
-            <option value="90">3 mois</option>
-            <option value="180">6 mois</option>
-          </select>
-        </div>
-        <div style="flex:1">
-          <label style="display:block;margin-bottom:6px;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Environnement</label>
-          <div class="env-row">
-            <div class="env-btn d-sel" id="env-d" onclick="selEnv('demo')">🟡 DEMO</div>
-            <div class="env-btn" id="env-l" onclick="selEnv('live')">🔴 LIVE</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- BOUTON OAUTH PRINCIPAL -->
-      <div style="text-align:center;padding:10px 0 16px">
-        <button onclick="doOAuth()" style="
-          display:inline-flex;align-items:center;gap:10px;
-          background:linear-gradient(135deg,#00e5a0,#00b07a);
-          color:#000;font-weight:700;font-size:14px;
-          padding:13px 28px;border-radius:12px;border:none;cursor:pointer;
-          box-shadow:0 4px 20px rgba(0,229,160,0.3);transition:all 0.2s">
-          <span style="font-size:18px">🔗</span>
-          Se connecter avec Tradovate
-        </button>
-        <div style="font-size:11px;color:var(--text3);margin-top:8px">Une popup s'ouvrira sur trader.tradovate.com</div>
-      </div>
-
-      <div class="prog" id="api-pg"><div class="prog-fill" id="api-pf"></div></div>
-      <div class="api-st" id="api-st" style="white-space:pre-line;min-height:20px"></div>
-
-      <div class="preview-box" id="api-prev">
-        <div class="preview-header">
-          <span>Trades récupérés</span>
-          <span id="api-cnt" style="color:var(--accent);font-family:var(--mono)"></span>
-        </div>
-        <div id="api-rows"></div>
-      </div>
-
-      <div class="sec-note">🔒 Vos credentials sont saisis directement sur tradovate.com — TradeFlow ne les voit jamais. Token valide 90 min.</div>
-      <div class="modal-actions">
-        <button class="btn btn-ghost" onclick="closeImport()">Annuler</button>
-        <button class="btn btn-ghost" onclick="switchTab('csv')" style="color:var(--accent);border-color:var(--accent)">📄 Import CSV</button>
-        <button class="btn btn-primary" id="api-ok" style="display:none" onclick="doAPIImport()">✓ Ajouter au journal</button>
-      </div>
-    </div>
   </div>
 </div>
 
