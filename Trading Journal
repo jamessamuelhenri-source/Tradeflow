@@ -1,0 +1,1608 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TradeFlow — Trading Journal</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://js.stripe.com/v3/"></script>
+<style>
+:root{--bg:#0a0c10;--bg2:#0f1117;--bg3:#151820;--card:#12151e;--card2:#181c27;--border:#1e2433;--border2:#252d3d;--accent:#00e5a0;--accent2:#00b87d;--accent-dim:rgba(0,229,160,0.1);--red:#ff4d6d;--blue:#4d9fff;--blue-dim:rgba(77,159,255,0.12);--yellow:#f7c948;--purple:#a78bfa;--text:#e8eaf0;--text2:#8b92a8;--text3:#535870;--mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;--display:'Syne',sans-serif;}
+*{margin:0;padding:0;box-sizing:border-box;}body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden;}
+.app{display:flex;min-height:100vh;}
+.sidebar{width:240px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;}
+.logo{padding:24px 20px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),var(--blue));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.logo-text{font-family:var(--display);font-size:18px;font-weight:800;background:linear-gradient(90deg,var(--accent),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.nav{padding:16px 12px;flex:1;}.nav-section{margin-bottom:24px;}
+.nav-label{font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--text3);text-transform:uppercase;padding:0 8px;margin-bottom:6px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500;color:var(--text2);transition:all .15s;margin-bottom:2px;}
+.nav-item:hover{background:var(--bg3);color:var(--text);}.nav-item.active{background:var(--accent-dim);color:var(--accent);}
+.nav-item .icon{font-size:16px;width:20px;text-align:center;}
+.nav-badge{margin-left:auto;background:var(--accent-dim);color:var(--accent);font-size:10px;font-family:var(--mono);padding:2px 6px;border-radius:100px;}
+.sidebar-footer{padding:16px;border-top:1px solid var(--border);}
+.user-card{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;background:var(--bg3);cursor:pointer;}
+.user-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--blue));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;}
+.user-name{font-size:13px;font-weight:600;}.user-plan{font-size:10px;color:var(--accent);font-family:var(--mono);}
+.main{margin-left:240px;flex:1;display:flex;flex-direction:column;}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 28px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.page-title{font-family:var(--display);font-size:20px;font-weight:700;}
+.topbar-actions{display:flex;align-items:center;gap:10px;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s;font-family:var(--sans);}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border2);}.btn-ghost:hover{background:var(--bg3);color:var(--text);}
+.btn-primary{background:var(--accent);color:#000;}.btn-primary:hover{background:var(--accent2);}
+.btn-blue{background:var(--blue);color:#fff;}.btn-blue:hover{opacity:.9;}
+.content{padding:28px;flex:1;}.page{display:none;}.page.active{display:block;}
+.tabs{display:flex;gap:4px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:4px;width:fit-content;margin-bottom:24px;}
+.tab{padding:7px 16px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text2);transition:all .15s;}.tab.active{background:var(--bg3);color:var(--text);}
+.stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;position:relative;overflow:hidden;transition:border-color .2s;}
+.stat-card:hover{border-color:var(--border2);}.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent-dim),transparent);}
+.stat-label{font-size:11px;color:var(--text3);font-weight:500;letter-spacing:.5px;margin-bottom:8px;}
+.stat-value{font-family:var(--mono);font-size:22px;font-weight:500;line-height:1;}.stat-value.green{color:var(--accent);}.stat-value.red{color:var(--red);}.stat-value.blue{color:var(--blue);}
+.stat-delta{font-size:11px;margin-top:6px;display:flex;align-items:center;gap:3px;font-family:var(--mono);}.stat-delta.up{color:var(--accent);}.stat-delta.down{color:var(--red);}
+.score-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;display:flex;align-items:center;gap:14px;}
+.score-ring-wrap{position:relative;flex-shrink:0;}.score-ring{width:60px;height:60px;transform:rotate(-90deg);}
+.score-ring-bg{fill:none;stroke:var(--bg3);stroke-width:5;}.score-ring-fill{fill:none;stroke:var(--accent);stroke-width:5;stroke-linecap:round;stroke-dasharray:163;stroke-dashoffset:40;transition:stroke-dashoffset 1s ease;}
+.score-label{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(90deg);font-family:var(--mono);font-size:14px;font-weight:500;color:var(--accent);}
+.score-info .score-title{font-size:11px;color:var(--text3);margin-bottom:4px;}.score-info .score-num{font-family:var(--display);font-size:28px;font-weight:800;color:var(--accent);}.score-info .score-sub{font-size:11px;color:var(--text2);margin-top:2px;}
+.charts-row{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:24px;}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;}
+.chart-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.chart-title{font-size:13px;font-weight:600;}.chart-meta{font-size:12px;color:var(--text3);font-family:var(--mono);}
+.equity-curve{width:100%;height:140px;}
+.bar-chart{display:flex;align-items:flex-end;gap:6px;height:80px;}
+.bar-group{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;}
+.bar-wrap{display:flex;gap:3px;align-items:flex-end;width:100%;}
+.bar{flex:1;border-radius:3px 3px 0 0;min-height:4px;cursor:pointer;}.bar.win-bar{background:var(--accent);}.bar.loss-bar{background:var(--red);}
+.bar-label{font-size:8px;color:var(--text3);font-family:var(--mono);}
+.analytics-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:24px;}
+.prog-bar-wrap{display:flex;flex-direction:column;gap:8px;}
+.prog-item{display:flex;flex-direction:column;gap:4px;}.prog-label-row{display:flex;justify-content:space-between;font-size:11px;}
+.prog-label{color:var(--text2);}.prog-val{color:var(--text);font-family:var(--mono);}
+.prog-track{height:5px;background:var(--bg3);border-radius:100px;overflow:hidden;}.prog-fill{height:100%;border-radius:100px;}
+.legend{display:flex;flex-direction:column;gap:8px;}.legend-item{display:flex;align-items:center;gap:6px;font-size:12px;}.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.table-card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:24px;}
+.table-header-row{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);}
+.table-filters{display:flex;gap:8px;}
+.filter-pill{padding:5px 12px;border-radius:100px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--text2);transition:all .15s;font-family:var(--sans);}
+.filter-pill.active{background:var(--accent-dim);color:var(--accent);border-color:var(--accent);}
+.filter-pill:hover:not(.active){background:var(--bg3);}
+table{width:100%;border-collapse:collapse;}thead{background:var(--bg2);}
+th{text-align:left;padding:10px 16px;font-size:10px;font-weight:600;letter-spacing:1px;color:var(--text3);text-transform:uppercase;border-bottom:1px solid var(--border);}
+td{padding:12px 16px;font-size:13px;vertical-align:middle;border-bottom:1px solid var(--border);}
+tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(255,255,255,.015);}
+.symbol{font-family:var(--mono);font-weight:500;font-size:13px;}
+.side-badge{display:inline-flex;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.5px;font-family:var(--mono);}
+.side-long{background:rgba(0,229,160,.12);color:var(--accent);}.side-short{background:rgba(255,77,109,.12);color:var(--red);}
+.pnl-pos{color:var(--accent);font-family:var(--mono);font-weight:500;}.pnl-neg{color:var(--red);font-family:var(--mono);font-weight:500;}
+.tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:500;margin:2px;background:var(--bg3);color:var(--text2);border:1px solid var(--border2);}
+.rating{display:flex;gap:2px;}.star{color:var(--text3);font-size:12px;}.star.filled{color:var(--yellow);}
+.no-results{text-align:center;padding:40px;color:var(--text3);font-size:14px;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(4px);z-index:200;display:none;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--card);border:1px solid var(--border2);border-radius:16px;padding:28px;width:540px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.6);animation:slideUp .25s ease;}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+.modal-title{font-family:var(--display);font-size:18px;font-weight:700;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;}
+.modal-close{cursor:pointer;color:var(--text3);font-size:20px;}.modal-close:hover{color:var(--text);}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-group{display:flex;flex-direction:column;gap:6px;}.form-group.full{grid-column:1/-1;}
+label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;}
+input,select,textarea{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;font-family:var(--sans);outline:none;transition:border-color .15s;}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim);}
+textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);}
+.side-toggle{display:flex;gap:8px;}
+.side-btn{flex:1;padding:9px;border:1px solid var(--border2);border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;text-align:center;transition:all .15s;font-family:var(--mono);}
+.side-btn.long-btn{color:var(--accent);}.side-btn.long-btn.sel{background:rgba(0,229,160,.15);border-color:var(--accent);}
+.side-btn.short-btn{color:var(--red);}.side-btn.short-btn.sel{background:rgba(255,77,109,.15);border-color:var(--red);}
+.modal-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end;}
+/* IMPORT */
+.import-modal{width:620px;}
+.import-tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--bg3);border-radius:10px;padding:4px;}
+.import-tab{flex:1;padding:9px;border-radius:7px;text-align:center;font-size:13px;font-weight:600;cursor:pointer;color:var(--text2);transition:all .15s;}
+.import-tab.active{background:var(--card2);color:var(--text);}
+.import-panel{display:none;}.import-panel.active{display:block;}
+.info-box{border-radius:10px;padding:14px;margin-bottom:16px;font-size:12px;line-height:1.8;}
+.info-box.green{background:var(--accent-dim);border:1px solid rgba(0,229,160,.25);color:var(--text2);}
+.info-box.green strong{color:var(--accent);}
+.info-box.blue{background:var(--blue-dim);border:1px solid rgba(77,159,255,.25);color:var(--text2);}
+.info-box.blue strong{color:var(--blue);}
+.drop-zone{border:2px dashed var(--border2);border-radius:12px;padding:32px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px;}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:var(--accent-dim);}
+.drop-icon{font-size:36px;margin-bottom:10px;}.drop-title{font-size:15px;font-weight:600;margin-bottom:4px;}.drop-sub{font-size:12px;color:var(--text3);}
+.preview-box{background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:16px;display:none;}
+.preview-header{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px;display:flex;justify-content:space-between;}
+.preview-row{font-size:11px;font-family:var(--mono);color:var(--text2);padding:4px 0;border-bottom:1px solid var(--border);}
+.preview-row:last-child{border-bottom:none;}
+.prog{height:4px;background:var(--border);border-radius:100px;overflow:hidden;margin:12px 0;display:none;}
+.prog-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--blue));border-radius:100px;transition:width .4s ease;}
+.api-st{font-size:12px;min-height:18px;margin-bottom:12px;font-family:var(--mono);color:var(--text3);}
+.env-row{display:flex;gap:8px;margin-bottom:14px;}
+.env-btn{flex:1;padding:9px;border:1px solid var(--border2);border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;text-align:center;transition:all .15s;font-family:var(--mono);color:var(--text3);}
+.env-btn.d-sel{background:var(--blue-dim);border-color:var(--blue);color:var(--blue);}
+.env-btn.l-sel{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
+.sec-note{margin-top:12px;padding:10px;background:var(--bg3);border-radius:8px;font-size:11px;color:var(--text3);line-height:1.6;}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--card2);border:1px solid var(--accent);border-radius:10px;padding:12px 18px;font-size:13px;font-weight:500;color:var(--accent);z-index:999;box-shadow:0 8px 32px rgba(0,229,160,.2);transform:translateY(80px);opacity:0;transition:all .3s ease;}
+.toast.show{transform:translateY(0);opacity:1;}
+/* ── AUTH OVERLAY ── */
+.auth-overlay{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;}
+.auth-overlay.hidden{display:none;}
+.auth-card{width:100%;max-width:420px;background:var(--card);border:1px solid var(--border2);border-radius:20px;padding:40px;box-shadow:0 40px 80px rgba(0,0,0,0.5);}
+.auth-logo{text-align:center;margin-bottom:28px;}
+.auth-logo-icon{width:52px;height:52px;background:linear-gradient(135deg,var(--accent),var(--blue));border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px;}
+.auth-logo-text{font-family:var(--display);font-size:22px;font-weight:800;background:linear-gradient(90deg,var(--accent),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.auth-tabs{display:flex;background:var(--bg3);border-radius:10px;padding:4px;margin-bottom:24px;gap:4px;}
+.auth-tab{flex:1;padding:8px;text-align:center;font-size:13px;font-weight:600;border-radius:8px;cursor:pointer;color:var(--text3);transition:all .2s;}
+.auth-tab.active{background:var(--card2);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,0.3);}
+.auth-field{margin-bottom:14px;}
+.auth-field label{display:block;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.auth-field input{width:100%;padding:11px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-size:14px;outline:none;transition:border-color .2s;}
+.auth-field input:focus{border-color:var(--accent);}
+.auth-btn{width:100%;padding:13px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#000;font-size:14px;font-weight:800;border:none;cursor:pointer;margin-top:8px;transition:all .2s;}
+.auth-btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,229,160,0.25);}
+.auth-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+.auth-divider{text-align:center;color:var(--text3);font-size:12px;margin:16px 0;position:relative;}
+.auth-divider::before{content:'';position:absolute;top:50%;left:0;right:0;height:1px;background:var(--border);}
+.auth-divider span{background:var(--card);padding:0 12px;position:relative;}
+.auth-msg{padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:14px;display:none;}
+.auth-msg.error{background:rgba(255,77,109,0.1);border:1px solid rgba(255,77,109,0.3);color:var(--red);}
+.auth-msg.success{background:rgba(0,229,160,0.1);border:1px solid rgba(0,229,160,0.3);color:var(--accent);}
+/* ── PLAN BADGE ── */
+.plan-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:100px;font-size:10px;font-weight:700;}
+.plan-badge.free{background:rgba(255,255,255,0.05);color:var(--text3);}
+.plan-badge.pro{background:linear-gradient(90deg,rgba(0,229,160,0.15),rgba(0,229,160,0.05));border:1px solid rgba(0,229,160,0.3);color:var(--accent);}
+/* ── UPGRADE BANNER ── */
+.upgrade-banner{background:linear-gradient(135deg,rgba(0,229,160,0.08),rgba(77,159,255,0.08));border:1px solid rgba(0,229,160,0.2);border-radius:12px;padding:16px;margin:12px 0;display:none;}
+.upgrade-banner.show{display:block;}
+::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:var(--bg);}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:100px;}
+@media(max-width:1200px){.stats-grid{grid-template-columns:repeat(3,1fr);}.analytics-row{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+
+<!-- ══ AUTH OVERLAY ══ -->
+<div class="auth-overlay" id="auth-overlay">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">📈</div>
+      <div class="auth-logo-text">TradeFlow</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:4px">Journal de trading professionnel</div>
+    </div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tab-login" onclick="authTab('login')">Connexion</div>
+      <div class="auth-tab" id="tab-signup" onclick="authTab('signup')">Créer un compte</div>
+    </div>
+    <div class="auth-msg" id="auth-msg"></div>
+    <div id="auth-login">
+      <div class="auth-field"><label>Email</label><input type="email" id="login-email" placeholder="vous@email.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="auth-field"><label>Mot de passe</label><input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="auth-btn" id="login-btn" onclick="doLogin()">Se connecter</button>
+      <div style="text-align:center;margin-top:14px"><span style="font-size:12px;color:var(--text3);cursor:pointer" onclick="doForgotPassword()">Mot de passe oublié ?</span></div>
+    </div>
+    <div id="auth-signup" style="display:none">
+      <div class="auth-field"><label>Nom complet</label><input type="text" id="signup-name" placeholder="Votre nom"></div>
+      <div class="auth-field"><label>Email</label><input type="email" id="signup-email" placeholder="vous@email.com"></div>
+      <div class="auth-field"><label>Mot de passe</label><input type="password" id="signup-pass" placeholder="8 caractères minimum"></div>
+      <button class="auth-btn" id="signup-btn" onclick="doSignup()">Créer mon compte — 14 jours gratuits</button>
+      <p style="font-size:11px;color:var(--text3);text-align:center;margin-top:10px">Aucune carte requise · Annulation à tout moment</p>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+<aside class="sidebar">
+  <div class="logo"><div class="logo-icon">📈</div><div class="logo-text">TradeFlow</div></div>
+  <nav class="nav">
+    <div class="nav-section">
+      <div class="nav-label">Principal</div>
+      <div class="nav-item active" onclick="showPage('dashboard',this)"><span class="icon">⚡</span>Dashboard</div>
+      <div class="nav-item" onclick="showPage('journal',this)"><span class="icon">📓</span>Journal<span class="nav-badge" id="badge">0</span></div>
+      <div class="nav-item" onclick="showPage('analytics',this)"><span class="icon">📊</span>Analytics</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Outils</div>
+      <div class="nav-item" onclick="showPage('calendar',this)"><span class="icon">📅</span>Calendrier</div>
+      <div class="nav-item" onclick="showPage('reports',this)"><span class="icon">🧾</span>Rapports</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Compte</div>
+      <div class="nav-item" onclick="showPage('settings',this)"><span class="icon">⚙️</span>Paramètres</div>
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-card" style="flex-direction:column;align-items:flex-start;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px;width:100%">
+        <div class="user-avatar" id="user-avatar">TF</div>
+        <div style="flex:1;min-width:0">
+          <div class="user-name" id="user-name">Chargement...</div>
+          <div id="user-plan-badge"><span class="plan-badge free">FREE</span></div>
+        </div>
+      </div>
+      <button onclick="doLogout()" style="width:100%;padding:7px;border-radius:8px;background:transparent;border:1px solid var(--border2);color:var(--text3);font-size:12px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text3)'">
+        Déconnexion
+      </button>
+    </div>
+  </div>
+</aside>
+<main class="main">
+  <div class="topbar">
+    <div class="page-title" id="page-title">Dashboard</div>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost" onclick="openImport()">🔗 Importer Tradovate</button>
+      <button class="btn btn-primary" onclick="openTrade()">＋ Ajouter Trade</button>
+    </div>
+  </div>
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="page active">
+      <div class="tabs"><div class="tab active" onclick="setTab(this)">Aujourd'hui</div><div class="tab" onclick="setTab(this)">Semaine</div><div class="tab" onclick="setTab(this)">Mois</div><div class="tab" onclick="setTab(this)">Année</div></div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">P&L NET</div><div class="stat-value green" id="s-pnl">+$0.00</div><div class="stat-delta up" id="s-pnl-d">↑ 0.00%</div></div>
+        <div class="stat-card"><div class="stat-label">WIN RATE</div><div class="stat-value blue" id="s-wr">0%</div><div class="stat-delta" id="s-wr-d" style="color:var(--text3)">— aucun trade</div></div>
+        <div class="stat-card"><div class="stat-label">PROFIT FACTOR</div><div class="stat-value" id="s-pf">0.00</div><div class="stat-delta" style="color:var(--text3)" id="s-pf-d">—</div></div>
+        <div class="stat-card"><div class="stat-label">TRADES TOTAL</div><div class="stat-value" id="s-tot">0</div><div class="stat-delta" style="color:var(--text3)" id="s-wl">0W / 0L</div></div>
+        <div class="score-card"><div class="score-ring-wrap"><svg class="score-ring" viewBox="0 0 60 60"><circle class="score-ring-bg" cx="30" cy="30" r="26"/><circle class="score-ring-fill" id="score-ring" cx="30" cy="30" r="26"/></svg><span class="score-label" id="score-pct">75</span></div><div class="score-info"><div class="score-title">FLOW SCORE</div><div class="score-num" id="score-num">75</div><div class="score-sub" id="score-sub">Bon — Continuez</div></div></div>
+      </div>
+      <div class="charts-row">
+        <div class="chart-card"><div class="chart-header"><div class="chart-title">Courbe de capitaux</div><div class="chart-meta" id="eq-meta">$10,000 → $0</div></div>
+          <svg class="equity-curve" id="eq-svg" viewBox="0 0 600 140" preserveAspectRatio="none"><defs><linearGradient id="eg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#00e5a0" stop-opacity="0.25"/><stop offset="100%" stop-color="#00e5a0" stop-opacity="0"/></linearGradient></defs><path id="eq-area" fill="url(#eg)"/><path id="eq-line" fill="none" stroke="#00e5a0" stroke-width="2"/><text id="eq-ph" x="300" y="75" text-anchor="middle" fill="#535870" font-size="13" font-family="DM Mono">Ajoutez vos premiers trades</text></svg>
+        </div>
+        <div class="chart-card"><div class="chart-header"><div class="chart-title">P&L par session</div><div class="chart-meta">7 derniers jours</div></div><div class="bar-chart" id="sess-bars"><div style="text-align:center;width:100%;color:var(--text3);font-size:12px;padding:20px 0">Aucune donnée</div></div></div>
+      </div>
+      <div class="analytics-row">
+        <div class="chart-card"><div class="chart-header"><div class="chart-title">Par stratégie</div></div><div id="strat-wrap" style="display:flex;align-items:center;gap:16px"><span style="color:var(--text3);font-size:12px">Aucune donnée</span></div></div>
+        <div class="chart-card"><div class="chart-header"><div class="chart-title">Meilleurs symboles</div></div><div class="prog-bar-wrap" id="sym-bars"><span style="color:var(--text3);font-size:12px">Aucune donnée</span></div></div>
+        <div class="chart-card"><div class="chart-header"><div class="chart-title">Statistiques clés</div></div><div id="key-stats"></div></div>
+      </div>
+      <div class="table-card">
+        <div class="table-header-row"><div class="chart-title">Trades récents</div>
+          <div class="table-filters"><button class="filter-pill active" onclick="filt('Tous',this)">Tous</button><button class="filter-pill" onclick="filt('LONG',this)">Long</button><button class="filter-pill" onclick="filt('SHORT',this)">Short</button><button class="filter-pill" onclick="filt('WIN',this)">Wins</button><button class="filter-pill" onclick="filt('LOSS',this)">Losses</button></div>
+        </div>
+        <div id="dash-table"><div class="no-results">📭 Aucun trade. Cliquez "+ Ajouter Trade" ou "Importer Tradovate".</div></div>
+      </div>
+    </div>
+
+    <!-- JOURNAL -->
+    <div id="page-journal" class="page">
+      <div class="table-card"><div class="table-header-row"><div class="chart-title">Tous les trades</div><button class="btn btn-primary" onclick="openTrade()">＋ Ajouter</button></div><div id="jour-table"><div class="no-results">📭 Votre journal est vide.</div></div></div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div id="page-analytics" class="page">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px">
+        <div class="chart-card"><div class="chart-header"><div class="chart-title">P&L cumulatif</div></div><svg style="width:100%;height:160px" id="cum-svg" viewBox="0 0 600 160" preserveAspectRatio="none"><text x="300" y="85" text-anchor="middle" fill="#535870" font-size="13" font-family="DM Mono">Ajoutez des trades</text></svg></div>
+        <div class="chart-card"><div class="chart-header"><div class="chart-title">Distribution W/L</div></div><div id="dist-ch" style="height:160px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px">Aucune donnée</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+        <div class="stat-card"><div class="stat-label">AVG WIN</div><div class="stat-value green" id="a-aw">$0</div></div>
+        <div class="stat-card"><div class="stat-label">AVG LOSS</div><div class="stat-value red" id="a-al">$0</div></div>
+        <div class="stat-card"><div class="stat-label">MAX WIN</div><div class="stat-value green" id="a-mw">$0</div></div>
+        <div class="stat-card"><div class="stat-label">MAX LOSS</div><div class="stat-value red" id="a-ml">$0</div></div>
+        <div class="stat-card"><div class="stat-label">R:R RATIO</div><div class="stat-value blue" id="a-rr">0.00</div></div>
+        <div class="stat-card"><div class="stat-label">EXPECTANCY</div><div class="stat-value" id="a-ex">$0</div></div>
+        <div class="stat-card"><div class="stat-label">MEILLEUR JOUR</div><div class="stat-value green" id="a-bd">$0</div></div>
+        <div class="stat-card"><div class="stat-label">PIRE JOUR</div><div class="stat-value red" id="a-wd">$0</div></div>
+      </div>
+    </div>
+
+    <!-- CALENDAR -->
+    <div id="page-calendar" class="page">
+      <div class="chart-card"><div class="chart-header"><div class="chart-title">Calendrier — <span id="cal-lbl">Mars 2026</span></div><div style="display:flex;gap:8px"><button class="btn btn-ghost" onclick="cm(-1)">‹</button><button class="btn btn-ghost" onclick="cm(1)">›</button></div></div><div id="cal-grid" style="margin-top:8px"></div></div>
+    </div>
+
+    <!-- REPORTS -->
+    <div id="page-reports" class="page">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+        <div class="chart-card" style="cursor:pointer" onclick="toast('📊 Rapport généré!')"><div style="font-size:28px;margin-bottom:10px">📊</div><div class="chart-title" style="margin-bottom:6px">Rapport Mensuel</div><div style="font-size:12px;color:var(--text3)">Performances du mois</div></div>
+        <div class="chart-card" style="cursor:pointer" onclick="toast('🏆 Analyse des setups...')"><div style="font-size:28px;margin-bottom:10px">🏆</div><div class="chart-title" style="margin-bottom:6px">Meilleures Setups</div><div style="font-size:12px;color:var(--text3)">Patterns rentables</div></div>
+        <div class="chart-card" style="cursor:pointer" onclick="toast('⏰ Analyse temporelle...')"><div style="font-size:28px;margin-bottom:10px">⏰</div><div class="chart-title" style="margin-bottom:6px">Analyse Temporelle</div><div style="font-size:12px;color:var(--text3)">Meilleures heures</div></div>
+        <div class="chart-card" style="cursor:pointer" onclick="toast('🎯 Analyse des erreurs...')"><div style="font-size:28px;margin-bottom:10px">🎯</div><div class="chart-title" style="margin-bottom:6px">Analyse Erreurs</div><div style="font-size:12px;color:var(--text3)">Patterns de pertes</div></div>
+        <div class="chart-card" style="cursor:pointer" onclick="toast('📈 Drawdown analysis...')"><div style="font-size:28px;margin-bottom:10px">📈</div><div class="chart-title" style="margin-bottom:6px">Drawdown</div><div style="font-size:12px;color:var(--text3)">Risque et drawdown</div></div>
+        <div class="chart-card" style="cursor:pointer" onclick="toast('🧠 Rapport psychologique...')"><div style="font-size:28px;margin-bottom:10px">🧠</div><div class="chart-title" style="margin-bottom:6px">Psychologie</div><div style="font-size:12px;color:var(--text3)">Émotions et discipline</div></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="page-settings" class="page">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+
+        <!-- Profil -->
+        <div class="chart-card">
+          <div class="chart-title" style="margin-bottom:16px">👤 Profil du compte</div>
+          <div class="form-group" style="margin-bottom:12px">
+            <label>Email</label>
+            <input type="text" id="settings-email" readonly style="opacity:0.6;cursor:default">
+          </div>
+          <div class="form-group" style="margin-bottom:12px">
+            <label>Capital de départ ($)</label>
+            <input type="number" id="cap-input" value="10000" onchange="updateCap(this.value)">
+          </div>
+          <div class="form-group" style="margin-bottom:16px">
+            <label>Devise</label>
+            <select><option>USD $</option><option>EUR €</option><option>GBP £</option></select>
+          </div>
+          <button class="btn btn-primary" onclick="toast('✅ Paramètres sauvegardés!')">Sauvegarder</button>
+        </div>
+
+        <!-- Abonnement -->
+        <div class="chart-card">
+          <div class="chart-title" style="margin-bottom:16px">💳 Abonnement</div>
+          <div id="plan-free-ui">
+            <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:16px;margin-bottom:16px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <span style="font-weight:700">Plan Gratuit</span>
+                <span class="plan-badge free">FREE</span>
+              </div>
+              <div style="font-size:12px;color:var(--text3);line-height:1.7">
+                ✓ Import CSV · ✓ Dashboard<br>
+                ✗ Sync Tradovate auto<br>
+                ✗ Export PDF · ✗ Trades illimités
+              </div>
+            </div>
+            <div style="background:linear-gradient(135deg,rgba(0,229,160,0.08),rgba(77,159,255,0.05));border:1px solid rgba(0,229,160,0.2);border-radius:10px;padding:16px;margin-bottom:16px">
+              <div style="font-size:13px;font-weight:700;margin-bottom:4px">TradeFlow Pro — $9.99/mois</div>
+              <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.7">
+                ✅ Sync Tradovate automatique<br>
+                ✅ Trades illimités<br>
+                ✅ Export PDF · ✅ Toutes les stats
+              </div>
+              <button class="btn btn-primary" style="width:100%" onclick="doSubscribe()">
+                ⚡ Passer à Pro — 14 jours gratuits
+              </button>
+            </div>
+          </div>
+          <div id="plan-pro-ui" style="display:none">
+            <div style="background:linear-gradient(135deg,rgba(0,229,160,0.08),rgba(77,159,255,0.05));border:1px solid rgba(0,229,160,0.3);border-radius:10px;padding:16px;margin-bottom:16px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <span style="font-weight:700">Plan Pro</span>
+                <span class="plan-badge pro">✦ PRO</span>
+              </div>
+              <div style="font-size:12px;color:var(--text3);line-height:1.7">
+                ✅ Toutes les fonctionnalités actives<br>
+                ✅ Sync Tradovate · ✅ Export PDF
+              </div>
+            </div>
+            <button class="btn btn-ghost" style="width:100%;color:var(--red);border-color:var(--red)" onclick="doManageBilling()">
+              Gérer l'abonnement
+            </button>
+          </div>
+        </div>
+
+        <!-- Connexion Tradovate -->
+        <div class="chart-card">
+          <div class="chart-title" style="margin-bottom:16px">🔗 Connexion Tradovate</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="padding:12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border2);display:flex;justify-content:space-between;align-items:center">
+              <span>🔴 Live Account</span>
+              <button class="btn btn-ghost" style="font-size:11px" onclick="openImport()">Connecter</button>
+            </div>
+            <div style="padding:12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border2);display:flex;justify-content:space-between;align-items:center">
+              <span>🟡 Demo Account</span>
+              <button class="btn btn-ghost" style="font-size:11px" onclick="openImport()">Connecter</button>
+            </div>
+            <div style="padding:12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border2);display:flex;justify-content:space-between;align-items:center">
+              <span>📄 Import CSV</span>
+              <button class="btn btn-ghost" style="font-size:11px" onclick="openImport()">Importer</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Danger zone -->
+        <div class="chart-card">
+          <div class="chart-title" style="margin-bottom:16px;color:var(--red)">⚠️ Zone dangereuse</div>
+          <button class="btn btn-ghost" style="width:100%;color:var(--red);border-color:var(--red);margin-bottom:10px" onclick="if(confirm('Effacer TOUS les trades ?')){T=[];save();renderAll();toast('🗑️ Données effacées');}">
+            Effacer tous les trades
+          </button>
+          <button class="btn btn-ghost" style="width:100%;color:var(--red);border-color:var(--red)" onclick="doLogout()">
+            Déconnexion
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</main>
+</div>
+
+<!-- TRADE MODAL -->
+<div class="modal-overlay" id="trade-modal" onclick="if(event.target===this)closeTrade()">
+  <div class="modal">
+    <div class="modal-title"><span>Nouveau Trade</span><span class="modal-close" onclick="closeTrade()">✕</span></div>
+    <div class="form-grid">
+      <div class="form-group"><label>Symbole</label><input type="text" id="f-sym" placeholder="ex: AAPL, ESU4, BTC" style="text-transform:uppercase"></div>
+      <div class="form-group"><label>Direction</label><div class="side-toggle"><div class="side-btn long-btn sel" id="btn-long" onclick="selSide('LONG')">LONG</div><div class="side-btn short-btn" id="btn-short" onclick="selSide('SHORT')">SHORT</div></div></div>
+      <div class="form-group"><label>Date d'entrée</label><input type="date" id="f-date"></div>
+      <div class="form-group"><label>Heure</label><input type="time" id="f-time" value="09:30"></div>
+      <div class="form-group"><label>Prix d'entrée ($)</label><input type="number" id="f-entry" placeholder="0.00" step="0.01"></div>
+      <div class="form-group"><label>Prix de sortie ($)</label><input type="number" id="f-exit" placeholder="0.00" step="0.01"></div>
+      <div class="form-group"><label>Quantité</label><input type="number" id="f-qty" placeholder="1" min="0"></div>
+      <div class="form-group"><label>Stratégie</label><select id="f-strat"><option value="">— Sélectionner —</option><option>Breakout</option><option>Mean Reversion</option><option>Momentum</option><option>Gap & Go</option><option>Scalping</option><option>Swing</option><option>Autre</option></select></div>
+      <div class="form-group"><label>Émotion</label><select id="f-emo"><option value="">— Sélectionner —</option><option>😊 Confiant</option><option>😐 Neutre</option><option>😰 Nerveux</option><option>😤 Impatient</option><option>😨 Craintif</option></select></div>
+      <div class="form-group"><label>Note ⭐</label><select id="f-rate"><option value="5">⭐⭐⭐⭐⭐ Excellent</option><option value="4">⭐⭐⭐⭐ Bon</option><option value="3" selected>⭐⭐⭐ Moyen</option><option value="2">⭐⭐ Mauvais</option><option value="1">⭐ Horrible</option></select></div>
+      <div class="form-group full"><label>Tags</label><input type="text" id="f-tags" placeholder="ex: FOMO, Stop respecté..."></div>
+      <div class="form-group full"><label>Notes</label><textarea id="f-notes" placeholder="Analyse, leçons apprises..."></textarea></div>
+    </div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeTrade()">Annuler</button><button class="btn btn-primary" onclick="saveTrade()">Enregistrer</button></div>
+  </div>
+</div>
+
+<!-- IMPORT MODAL -->
+<div class="modal-overlay" id="imp-modal" onclick="if(event.target===this)closeImport()">
+  <div class="modal import-modal">
+    <div class="modal-title"><span>🔗 Importer depuis Tradovate</span><span class="modal-close" onclick="closeImport()">✕</span></div>
+    <div class="import-tabs">
+      <div class="import-tab active" id="itab-csv" onclick="switchTab('csv')">📄 Import CSV</div>
+      <div class="import-tab" id="itab-api" onclick="switchTab('api')">⚡ Connexion API</div>
+    </div>
+
+    <!-- CSV -->
+    <div class="import-panel active" id="ipanel-csv">
+
+      <!-- PROP FIRM SELECTOR -->
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Prop Firm / Compte</div>
+        <div id="propfirm-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
+          <!-- populated by JS -->
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="text" id="pf-custom" placeholder="Autre prop firm..." style="flex:1;font-size:12px;padding:7px 10px">
+          <button class="btn btn-ghost" style="font-size:11px;white-space:nowrap" onclick="selectPropFirm(document.getElementById('pf-custom').value)">+ Ajouter</button>
+        </div>
+      </div>
+
+      <!-- INSTRUCTIONS -->
+      <div class="info-box green" style="margin-bottom:12px">
+        <strong>📋 Exporter depuis Tradovate :</strong>
+        <span style="color:var(--text3)"> trader.tradovate.com → Account → ⚙️ → Account Reports → </span><strong>onglet Orders</strong><span style="color:var(--text3)"> → Download CSV</span>
+      </div>
+
+      <!-- DROP ZONE -->
+      <div class="drop-zone" id="dz"
+        onclick="document.getElementById('csv-inp').click()"
+        ondragover="event.preventDefault();this.classList.add('drag-over')"
+        ondragleave="this.classList.remove('drag-over')"
+        ondrop="doDrop(event)">
+        <div class="drop-icon">📂</div>
+        <div class="drop-title">Glissez votre fichier CSV ici</div>
+        <div class="drop-sub">Format Tradovate Orders — colonnes : orderId, B/S, Contract, avgPrice, filledQty, Fill Time, Status</div>
+        <input type="file" id="csv-inp" accept=".csv" style="display:none" onchange="doFile(this.files[0])">
+      </div>
+
+      <div class="prog" id="csv-pg"><div class="prog-fill" id="csv-pf"></div></div>
+      <div class="preview-box" id="csv-prev">
+        <div class="preview-header"><span>Trades reconstitués</span><span id="csv-cnt" style="color:var(--accent);font-family:var(--mono)"></span></div>
+        <div id="csv-rows"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeImport()">Annuler</button>
+        <button class="btn btn-primary" id="csv-ok" style="display:none" onclick="doCsvImport()">✓ Importer les trades</button>
+      </div>
+    </div>
+
+    <!-- API — OAuth Tradovate (comme PropTato) -->
+    <div class="import-panel" id="ipanel-api">
+
+      <!-- EXPLICATION OAUTH -->
+      <div class="info-box green" style="margin-bottom:16px;line-height:1.9">
+        <strong>🔐 Connexion OAuth — comme PropTato</strong><br>
+        <span style="color:var(--text3)">Cliquez sur </span><strong>"Se connecter avec Tradovate"</strong><span style="color:var(--text3)">. Une popup s'ouvre sur </span><strong>trader.tradovate.com</strong><span style="color:var(--text3)"> — vous entrez vos credentials là-bas directement.<br>
+        ✅ Fonctionne avec </span><strong>Apex, TopStep, tous les comptes prop firm</strong><span style="color:var(--text3)"> — aucun mot de passe partagé avec TradeFlow.</span>
+      </div>
+
+      <!-- PERIOD + ENV -->
+      <div style="display:flex;gap:12px;margin-bottom:16px">
+        <div style="flex:1">
+          <label style="display:block;margin-bottom:6px;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Période</label>
+          <select id="ap-days" style="width:100%">
+            <option value="7">7 jours</option>
+            <option value="30" selected>30 jours</option>
+            <option value="90">3 mois</option>
+            <option value="180">6 mois</option>
+          </select>
+        </div>
+        <div style="flex:1">
+          <label style="display:block;margin-bottom:6px;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Environnement</label>
+          <div class="env-row">
+            <div class="env-btn d-sel" id="env-d" onclick="selEnv('demo')">🟡 DEMO</div>
+            <div class="env-btn" id="env-l" onclick="selEnv('live')">🔴 LIVE</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOUTON OAUTH PRINCIPAL -->
+      <div style="text-align:center;padding:10px 0 16px">
+        <button onclick="doOAuth()" style="
+          display:inline-flex;align-items:center;gap:10px;
+          background:linear-gradient(135deg,#00e5a0,#00b07a);
+          color:#000;font-weight:700;font-size:14px;
+          padding:13px 28px;border-radius:12px;border:none;cursor:pointer;
+          box-shadow:0 4px 20px rgba(0,229,160,0.3);transition:all 0.2s">
+          <span style="font-size:18px">🔗</span>
+          Se connecter avec Tradovate
+        </button>
+        <div style="font-size:11px;color:var(--text3);margin-top:8px">Une popup s'ouvrira sur trader.tradovate.com</div>
+      </div>
+
+      <div class="prog" id="api-pg"><div class="prog-fill" id="api-pf"></div></div>
+      <div class="api-st" id="api-st" style="white-space:pre-line;min-height:20px"></div>
+
+      <div class="preview-box" id="api-prev">
+        <div class="preview-header">
+          <span>Trades récupérés</span>
+          <span id="api-cnt" style="color:var(--accent);font-family:var(--mono)"></span>
+        </div>
+        <div id="api-rows"></div>
+      </div>
+
+      <div class="sec-note">🔒 Vos credentials sont saisis directement sur tradovate.com — TradeFlow ne les voit jamais. Token valide 90 min.</div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeImport()">Annuler</button>
+        <button class="btn btn-ghost" onclick="switchTab('csv')" style="color:var(--accent);border-color:var(--accent)">📄 Import CSV</button>
+        <button class="btn btn-primary" id="api-ok" style="display:none" onclick="doAPIImport()">✓ Ajouter au journal</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast-el"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+//  SUPABASE + STRIPE CONFIG
+// ══════════════════════════════════════════════════════════
+const SUPA_URL  = 'https://vtmdiipgyioyrkjgpyqd.supabase.co';
+const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0bWRpaXBneWlveXJramdweXFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMzg3MDksImV4cCI6MjA4ODcxNDcwOX0.omMvgx8ncIj5z3nmzDhkMS3fZ8L-PNO9owyFfFncaJc';
+const STRIPE_PK = 'pk_test_51T9O9cKAvKdBvWV4hNHiDRVDEDAlXyPOgDavo1SKu4OPCSQBhYlonT7WWsT5bgKNVqpK4LxOojEIbcOAEipp1w2U00t62XMoBB';
+const STRIPE_PRICE = 'price_1T9OBuKAvKdBvWV49FlwqnhT';
+
+const { createClient } = supabase;
+const db = createClient(SUPA_URL, SUPA_ANON);
+const stripe = Stripe(STRIPE_PK);
+
+let currentUser = null;
+let currentProfile = null;
+
+// ══════════════════════════════════════════════════════════
+//  AUTH FUNCTIONS
+// ══════════════════════════════════════════════════════════
+function authTab(tab){
+  document.getElementById('auth-login').style.display  = tab==='login'  ? '' : 'none';
+  document.getElementById('auth-signup').style.display = tab==='signup' ? '' : 'none';
+  document.getElementById('tab-login').classList.toggle('active',  tab==='login');
+  document.getElementById('tab-signup').classList.toggle('active', tab==='signup');
+  showAuthMsg('','');
+}
+
+function showAuthMsg(msg, type){
+  const el = document.getElementById('auth-msg');
+  el.textContent = msg;
+  el.className = 'auth-msg' + (type ? ' '+type : '');
+  el.style.display = msg ? 'block' : 'none';
+}
+
+async function doLogin(){
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  if(!email||!pass){ showAuthMsg('Email et mot de passe requis','error'); return; }
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.textContent = 'Connexion...';
+  const { error } = await db.auth.signInWithPassword({ email, password: pass });
+  btn.disabled = false; btn.textContent = 'Se connecter';
+  if(error) showAuthMsg('❌ ' + (error.message==='Invalid login credentials' ? 'Email ou mot de passe incorrect' : error.message), 'error');
+}
+
+async function doSignup(){
+  const name  = document.getElementById('signup-name').value.trim();
+  const email = document.getElementById('signup-email').value.trim();
+  const pass  = document.getElementById('signup-pass').value;
+  if(!name||!email||!pass){ showAuthMsg('Tous les champs sont requis','error'); return; }
+  if(pass.length < 8){ showAuthMsg('Mot de passe trop court (8 min)','error'); return; }
+  const btn = document.getElementById('signup-btn');
+  btn.disabled = true; btn.textContent = 'Création...';
+  const { error } = await db.auth.signUp({
+    email, password: pass,
+    options: { data: { full_name: name } }
+  });
+  btn.disabled = false; btn.textContent = 'Créer mon compte — 14 jours gratuits';
+  if(error){ showAuthMsg('❌ ' + error.message, 'error'); return; }
+  showAuthMsg('✅ Compte créé ! Vérifiez votre email pour confirmer.','success');
+}
+
+async function doForgotPassword(){
+  const email = document.getElementById('login-email').value.trim();
+  if(!email){ showAuthMsg('Entrez votre email d\'abord','error'); return; }
+  const { error } = await db.auth.resetPasswordForEmail(email);
+  if(error) showAuthMsg('❌ '+error.message,'error');
+  else showAuthMsg('✅ Email de réinitialisation envoyé !','success');
+}
+
+async function doLogout(){
+  await db.auth.signOut();
+  currentUser = null; currentProfile = null;
+  T = []; renderAll();
+  document.getElementById('auth-overlay').classList.remove('hidden');
+}
+
+// ══════════════════════════════════════════════════════════
+//  STRIPE
+// ══════════════════════════════════════════════════════════
+async function doSubscribe(){
+  if(!currentUser){ toast('❌ Connectez-vous d\'abord'); return; }
+  toast('🔄 Redirection vers Stripe...');
+  // Stripe Checkout via direct link (no backend needed for basic checkout)
+  // On utilise le Payment Link Stripe — crée-le dans ton dashboard
+  // Pour l'instant on redirige vers la page de checkout Stripe
+  const { error } = await stripe.redirectToCheckout({
+    lineItems: [{ price: STRIPE_PRICE, quantity: 1 }],
+    mode: 'subscription',
+    successUrl: window.location.origin + window.location.pathname + '?subscribed=1',
+    cancelUrl:  window.location.href,
+    customerEmail: currentUser.email,
+  });
+  if(error) toast('❌ '+error.message);
+}
+
+async function doManageBilling(){
+  toast('💳 Gestion de l\'abonnement — contactez support@tradeflow.app');
+}
+
+// ══════════════════════════════════════════════════════════
+//  USER PROFILE + PLAN
+// ══════════════════════════════════════════════════════════
+async function loadProfile(user){
+  currentUser = user;
+  const { data } = await db.from('profiles').select('*').eq('id', user.id).single();
+  currentProfile = data;
+
+  // Update UI
+  const name  = user.user_metadata?.full_name || user.email.split('@')[0];
+  const initials = name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('user-avatar').textContent = initials;
+  document.getElementById('user-name').textContent   = name;
+  document.getElementById('settings-email').value    = user.email;
+
+  const isPro = data?.plan === 'pro' || (data?.trial_ends_at && new Date(data.trial_ends_at) > new Date());
+  document.getElementById('user-plan-badge').innerHTML =
+    isPro ? '<span class="plan-badge pro">✦ PRO</span>' : '<span class="plan-badge free">FREE</span>';
+  document.getElementById('plan-free-ui').style.display = isPro ? 'none' : '';
+  document.getElementById('plan-pro-ui').style.display  = isPro ? '' : 'none';
+
+  // Load trades from Supabase
+  await loadTradesFromDB();
+}
+
+async function loadTradesFromDB(){
+  if(!currentUser) return;
+  const { data, error } = await db.from('trades')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .order('date', { ascending: false });
+  if(error){ console.error(error); return; }
+  if(data && data.length > 0){
+    T = data.map(r=>({
+      id: r.id, sym: r.sym, side: r.side,
+      entry: r.entry, exit: r.exit, qty: r.qty,
+      pnl: r.pnl, pnlPct: r.pnl_pct,
+      date: r.date, time: r.time || '09:30',
+      strat: r.strat||'', emotion: r.emotion||'', rating: r.rating||3,
+      tags: r.tags||[], notes: r.notes||''
+    }));
+    renderAll();
+  }
+}
+
+// Override save() to sync with Supabase
+async function save(){
+  localStorage.setItem('tf_trades', JSON.stringify(T));
+  // Note: individual trade saves handled in saveTrade() and delTrade()
+}
+
+// Override saveTrade to also save to Supabase
+const _origSaveTrade = typeof saveTrade !== 'undefined' ? saveTrade : null;
+
+// ══════════════════════════════════════════════════════════
+//  INIT — check auth on page load
+// ══════════════════════════════════════════════════════════
+db.auth.onAuthStateChange(async (event, session) => {
+  if(session?.user){
+    document.getElementById('auth-overlay').classList.add('hidden');
+    await loadProfile(session.user);
+    // Check subscription success
+    if(window.location.search.includes('subscribed=1')){
+      toast('🎉 Bienvenue sur TradeFlow Pro !');
+      await db.from('profiles').update({ plan:'pro' }).eq('id', session.user.id);
+      history.replaceState({}, '', window.location.pathname);
+    }
+  } else {
+    document.getElementById('auth-overlay').classList.remove('hidden');
+    // Check if came from signup redirect
+    if(window.location.hash.includes('access_token')){
+      // Email confirmed, auth state will update
+    }
+    // Check hash for auth redirect
+    if(window.location.hash.includes('signup')){
+      authTab('signup');
+    }
+  }
+});
+
+// Also check URL hash for #signup
+if(window.location.hash === '#signup'){
+  authTab('signup');
+}
+
+// STATE
+let T=JSON.parse(localStorage.getItem('tf_trades')||'[]');
+let side='LONG',filt_active='Tous',calY=2026,calM=2;
+let cap=parseFloat(localStorage.getItem('tf_cap')||'10000');
+let csvT=[],apiT=[],apiEnv='demo';
+document.getElementById('f-date').value=new Date().toISOString().split('T')[0];
+
+// NAV
+function showPage(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(el)el.classList.add('active');
+  const ti={dashboard:'Dashboard',journal:'Journal',analytics:'Analytics',calendar:'Calendrier',reports:'Rapports',settings:'Paramètres'};
+  document.getElementById('page-title').textContent=ti[id]||id;
+  if(id==='journal')renderJour();
+  if(id==='analytics')renderAna();
+  if(id==='calendar')renderCal();
+}
+function setTab(el){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');}
+
+// TRADE MODAL
+function openTrade(){document.getElementById('trade-modal').classList.add('open');}
+function closeTrade(){document.getElementById('trade-modal').classList.remove('open');}
+function selSide(s){side=s;document.getElementById('btn-long').classList.toggle('sel',s==='LONG');document.getElementById('btn-short').classList.toggle('sel',s==='SHORT');}
+function saveTrade(){
+  const sym=document.getElementById('f-sym').value.trim().toUpperCase();
+  const en=parseFloat(document.getElementById('f-entry').value);
+  const ex=parseFloat(document.getElementById('f-exit').value);
+  const qty=parseFloat(document.getElementById('f-qty').value)||1;
+  const date=document.getElementById('f-date').value;
+  if(!sym||isNaN(en)||isNaN(ex)||!date){toast('❌ Symbole, entrée, sortie et date requis');return;}
+  const dir=side==='LONG'?1:-1,pnl=(ex-en)*qty*dir,pct=((ex-en)/en)*100*dir;
+  const trade={id:Date.now(),sym,side,entry:en,exit:ex,qty,pnl,pnlPct:pct,date,
+    time:document.getElementById('f-time').value,
+    strat:document.getElementById('f-strat').value,
+    emotion:document.getElementById('f-emo').value,
+    rating:parseInt(document.getElementById('f-rate').value),
+    tags:document.getElementById('f-tags').value.split(',').map(t=>t.trim()).filter(Boolean),
+    notes:document.getElementById('f-notes').value
+  };
+  T.push(trade);
+  save();closeTrade();renderAll();toast('✅ Trade enregistré!');
+  // Sync to Supabase
+  if(currentUser){
+    db.from('trades').insert({
+      user_id:currentUser.id, sym:trade.sym, side:trade.side,
+      entry:trade.entry, exit:trade.exit, qty:trade.qty,
+      pnl:trade.pnl, pnl_pct:trade.pnlPct,
+      date:trade.date, time:trade.time,
+      strat:trade.strat, emotion:trade.emotion, rating:trade.rating,
+      tags:trade.tags, notes:trade.notes
+    });
+  }
+  ['f-sym','f-entry','f-exit','f-notes','f-tags'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-qty').value='';
+  document.getElementById('f-strat').value='';
+  document.getElementById('f-emo').value='';
+  document.getElementById('f-date').value=new Date().toISOString().split('T')[0];
+}
+function delTrade(id){
+  T=T.filter(t=>t.id!==id);
+  save();renderAll();renderJour();toast('🗑️ Trade supprimé');
+  // Sync delete to Supabase
+  if(currentUser) db.from('trades').delete().eq('id', id).eq('user_id', currentUser.id);
+}
+function save(){
+  localStorage.setItem('tf_trades',JSON.stringify(T));
+}
+
+// IMPORT MODAL
+function openImport(){document.getElementById('imp-modal').classList.add('open');}
+function closeImport(){document.getElementById('imp-modal').classList.remove('open');}
+function switchTab(t){
+  document.querySelectorAll('.import-tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.import-panel').forEach(x=>x.classList.remove('active'));
+  document.getElementById('itab-'+t).classList.add('active');
+  document.getElementById('ipanel-'+t).classList.add('active');
+}
+function selEnv(e){
+  apiEnv=e;
+  document.getElementById('env-d').className='env-btn'+(e==='demo'?' d-sel':'');
+  document.getElementById('env-l').className='env-btn'+(e==='live'?' l-sel':'');
+}
+
+
+// ══════════════════════════════════════════════════════════
+//  CSV — Format réel Tradovate (onglet Orders)
+//  Headers: orderId,Account,Order ID,B/S,Contract,Product,
+//           Product Description,avgPrice,filledQty,Fill Time,
+//           lastCommandId,Status,_priceFormat,_priceFormatType,
+//           _tickSize,...,Date,Quantity,Avg Fill Price
+// ══════════════════════════════════════════════════════════
+function doDrop(e){
+  e.preventDefault();
+  document.getElementById('dz').classList.remove('drag-over');
+  const f=e.dataTransfer.files[0];
+  if(f&&f.name.endsWith('.csv'))doFile(f);
+  else toast('❌ Glissez un fichier .csv Tradovate');
+}
+function doFile(file){
+  if(!file)return;
+  const r=new FileReader();
+  r.onload=e=>parseCSV(e.target.result);
+  r.readAsText(file);
+}
+
+// ══════════════════════════════════════════════════════════
+//  PROP FIRMS
+// ══════════════════════════════════════════════════════════
+const PROP_FIRMS = [
+  {id:'apex',    name:'Apex Funding',     color:'#ff6b35', emoji:'🔶'},
+  {id:'topstep', name:'TopStep',          color:'#3b82f6', emoji:'🔵'},
+  {id:'mff',     name:'My Forex Funds',   color:'#10b981', emoji:'🟢'},
+  {id:'ftmo',    name:'FTMO',             color:'#f59e0b', emoji:'🟡'},
+  {id:'e8',      name:'E8 Funding',       color:'#8b5cf6', emoji:'🟣'},
+  {id:'funded',  name:'Funded Trading+',  color:'#06b6d4', emoji:'🔷'},
+  {id:'uft',     name:'United Funded Tr.',color:'#ec4899', emoji:'🩷'},
+  {id:'tp2',     name:'Topstep X',        color:'#14b8a6', emoji:'🩵'},
+  {id:'aqua',    name:'Aqua Funded',      color:'#22d3ee', emoji:'💎'},
+  {id:'take',    name:'Take Profit Trader',color:'#a3e635',emoji:'🍀'},
+  {id:'bulenox', name:'Bulenox',          color:'#fb923c', emoji:'🦬'},
+  {id:'tpt',     name:'TickTickTrader',   color:'#f97316', emoji:'⏱️'},
+  {id:'personal',name:'Compte Personnel', color:'#6b7280', emoji:'👤'},
+  {id:'other',   name:'Autre',            color:'#374151', emoji:'➕'},
+];
+let selectedPropFirm = '';
+
+function initPropFirms(){
+  const grid = document.getElementById('propfirm-grid');
+  if(!grid) return;
+  grid.innerHTML = PROP_FIRMS.map(pf=>`
+    <div id="pf-${pf.id}" onclick="selectPropFirm('${pf.name}')"
+      style="padding:7px 6px;border-radius:8px;border:1px solid var(--border2);cursor:pointer;
+             text-align:center;transition:all 0.15s;font-size:11px;color:var(--text2)">
+      <div style="font-size:16px;margin-bottom:2px">${pf.emoji}</div>
+      <div style="font-weight:600;line-height:1.2">${pf.name.split(' ').slice(0,2).join(' ')}</div>
+    </div>`).join('');
+}
+
+function selectPropFirm(name){
+  if(!name) return;
+  selectedPropFirm = name;
+  // Reset all
+  PROP_FIRMS.forEach(pf=>{
+    const el=document.getElementById('pf-'+pf.id);
+    if(el){ el.style.background=''; el.style.borderColor='var(--border2)'; el.style.color='var(--text2)'; }
+  });
+  // Highlight selected
+  const found = PROP_FIRMS.find(pf=>pf.name===name||pf.id===name.toLowerCase());
+  if(found){
+    const el=document.getElementById('pf-'+found.id);
+    if(el){ el.style.background=found.color+'22'; el.style.borderColor=found.color; el.style.color=found.color; }
+  }
+  toast(`✓ Prop firm: ${name}`);
+}
+
+// ══════════════════════════════════════════════════════════
+//  FUTURES CONTRACT MULTIPLIERS ($/point)
+// ══════════════════════════════════════════════════════════
+const MULTIPLIERS = {
+  // Micro E-minis
+  MNQ:2, MES:5, M2K:5, MYM:0.5,
+  // Full E-minis
+  NQ:20, ES:50, RTY:50, YM:5,
+  // Energy
+  CL:1000, NG:10000, RB:42000, HO:42000,
+  // Metals
+  GC:100, SI:5000, HG:25000,
+  MGC:10, // Micro Gold
+  // Rates
+  ZN:1000, ZB:1000, ZF:1000, ZT:2000,
+  // Crypto
+  BTC:5, ETH:25, MBT:0.1, MET:0.1,
+  // FX
+  '6E':125000,'6B':62500,'6J':12500000,'6A':100000,'6C':100000,
+  // VIX
+  VX:1000,
+};
+
+function getMultiplier(product){
+  // product = e.g. "MNQ", "MNQH6" etc.
+  // Strip expiry (last 2 chars if digit+letter or letter+digit)
+  const base = product.replace(/[FGHJKMNQUVXZ]\d$/i,'').replace(/\d{1,2}$/,'').toUpperCase();
+  return MULTIPLIERS[base] || MULTIPLIERS[product.toUpperCase()] || 1;
+}
+
+// ══════════════════════════════════════════════════════════
+//  CSV DROP / FILE
+// ══════════════════════════════════════════════════════════
+function doDrop(e){
+  e.preventDefault();
+  document.getElementById('dz').classList.remove('drag-over');
+  const f=e.dataTransfer.files[0];
+  if(f && f.name.endsWith('.csv')) doFile(f);
+  else toast('❌ Glissez un fichier .csv Tradovate');
+}
+function doFile(file){
+  if(!file) return;
+  const r=new FileReader();
+  r.onload=e=>parseCSV(e.target.result);
+  r.readAsText(file);
+}
+
+// ══════════════════════════════════════════════════════════
+//  CSV PARSER — Tradovate Orders format (exact)
+//  Confirmed headers from real export:
+//  orderId | Account | Order ID | B/S | Contract | Product |
+//  Product Description | avgPrice | filledQty | Fill Time |
+//  lastCommandId | Status | ... | Date | Quantity | ...
+// ══════════════════════════════════════════════════════════
+function parseCSV(text){
+  const lines = text.replace(/^\uFEFF/,'').trim().split(/\r?\n/).filter(l=>l.trim());
+  if(lines.length<2){ showCsvError('Fichier vide ou invalide.'); return; }
+
+  const heads = splitCsvRow(lines[0]).map(h=>h.trim().replace(/"/g,''));
+  // Case-insensitive index lookup
+  const idx = name => heads.findIndex(h=>h.toLowerCase()===name.toLowerCase());
+
+  // ── Exact Tradovate column names (from real CSV above) ──
+  const iBS      = idx('B/S');
+  const iContract= idx('Contract');
+  const iProduct = idx('Product');
+  const iPrice   = idx('avgPrice');        // "avgPrice" — lowercase a !
+  const iQty     = idx('filledQty');       // "filledQty"
+  const iTime    = idx('Fill Time');       // "Fill Time" with space
+  const iStatus  = idx('Status');
+
+  // Show detected columns in drop zone
+  const detected = {
+    'B/S': iBS>=0?'✅':'❌',
+    'Contract': iContract>=0?'✅':'❌',
+    'avgPrice': iPrice>=0?'✅':'❌',
+    'filledQty': iQty>=0?'✅':'❌',
+    'Fill Time': iTime>=0?'✅':'❌',
+    'Status': iStatus>=0?'✅':'❌',
+  };
+  document.getElementById('dz').innerHTML =
+    `<div style="text-align:left;font-size:11px;padding:4px 0">
+      <div style="color:var(--accent);font-weight:600;margin-bottom:6px">✓ Fichier lu — ${lines.length-1} lignes</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">${Object.entries(detected).map(([k,v])=>
+        `<span style="color:${v==='✅'?'var(--accent)':'var(--red)'}">${v} ${k}</span>`).join('')}
+      </div>
+     </div>`;
+
+  if(iBS<0||iContract<0||iPrice<0||iQty<0){
+    showCsvError(`Colonnes Tradovate non trouvées.<br><br>
+      Trouvé : <code style="font-size:10px">${heads.slice(0,12).join(' | ')}</code><br><br>
+      Attendu : <strong>B/S, Contract, avgPrice, filledQty, Fill Time, Status</strong><br><br>
+      ➜ Exportez depuis <strong>Account Reports → Orders</strong> (pas Performance, pas Cash History).`);
+    return;
+  }
+
+  // ── Parse only Filled rows ──
+  const rawRows=[];
+  for(let i=1;i<lines.length;i++){
+    const cells = splitCsvRow(lines[i]);
+    if(cells.length<4||cells.join('').trim()==='') continue;
+
+    const status = iStatus>=0 ? cells[iStatus].trim() : 'Filled';
+    if(status !== 'Filled') continue;  // skip Canceled, Rejected, etc.
+
+    const contract = cells[iContract].trim();
+    const product  = iProduct>=0 ? cells[iProduct].trim() : contract.replace(/[FGHJKMNQUVXZ]\d$/i,'');
+    const bs       = cells[iBS].trim();                      // " Sell" or " Buy" (may have leading space)
+    const price    = parseFloat(cells[iPrice].trim()) || 0;
+    const qty      = parseFloat(cells[iQty].trim())  || 1;
+    const dtRaw    = iTime>=0 ? cells[iTime].trim() : '';
+    const date     = parseDate(dtRaw);
+    const time     = parseTime(dtRaw);
+    const isSell   = bs.toLowerCase().includes('sell');
+
+    if(!contract||price===0) continue;
+    rawRows.push({contract, product, bs: isSell?'SELL':'BUY', price, qty, date, time});
+  }
+
+  if(rawRows.length===0){
+    showCsvError(`Aucune ligne "Filled" trouvée (${lines.length-1} lignes au total).<br><br>
+      Vérifiez que le fichier contient bien des ordres exécutés dans la plage de dates sélectionnée.`);
+    return;
+  }
+
+  // ── FIFO pairing: handle SELL-first (shorts) AND BUY-first (longs) ──
+  csvT=[];
+  const queues={};  // sym → [{price, qty, date, time, side, product}]
+
+  rawRows.forEach(row=>{
+    const sym = row.contract;
+    if(!queues[sym]) queues[sym]=[];
+    const q = queues[sym];
+
+    if(row.bs==='SELL'){
+      // Check if there are open LONG positions to close
+      let rem = row.qty;
+      while(rem>0 && q.length>0 && q[0].side==='LONG'){
+        const open=q[0];
+        const mq=Math.min(open.qty,rem);
+        const mult=getMultiplier(row.product);
+        const pnl=parseFloat(((row.price-open.price)*mq*mult).toFixed(2));
+        csvT.push({
+          id:Date.now()+csvT.length, sym,
+          side:'LONG', entry:open.price, exit:row.price,
+          qty:mq, pnl, pnlPct:open.price>0?(row.price-open.price)/open.price*100:0,
+          date:open.date, time:open.time,
+          strat:'',emotion:'',rating:3,
+          tags: ['Tradovate CSV', ...(selectedPropFirm?[selectedPropFirm]:[])],
+          notes:`Contrat: ${sym} | Mult: $${mult}/pt | Fermé: ${row.date} ${row.time}`
+        });
+        open.qty-=mq; rem-=mq;
+        if(open.qty<=0) q.shift();
+      }
+      // Remaining SELL = new SHORT position
+      if(rem>0) q.push({price:row.price, qty:rem, date:row.date, time:row.time, side:'SHORT', product:row.product});
+
+    } else { // BUY
+      // Check if there are open SHORT positions to close
+      let rem = row.qty;
+      while(rem>0 && q.length>0 && q[0].side==='SHORT'){
+        const open=q[0];
+        const mq=Math.min(open.qty,rem);
+        const mult=getMultiplier(row.product);
+        const pnl=parseFloat(((open.price-row.price)*mq*mult).toFixed(2));
+        csvT.push({
+          id:Date.now()+csvT.length, sym,
+          side:'SHORT', entry:open.price, exit:row.price,
+          qty:mq, pnl, pnlPct:open.price>0?(open.price-row.price)/open.price*100:0,
+          date:open.date, time:open.time,
+          strat:'',emotion:'',rating:3,
+          tags: ['Tradovate CSV', ...(selectedPropFirm?[selectedPropFirm]:[])],
+          notes:`Contrat: ${sym} | Mult: $${mult}/pt | Fermé: ${row.date} ${row.time}`
+        });
+        open.qty-=mq; rem-=mq;
+        if(open.qty<=0) q.shift();
+      }
+      // Remaining BUY = new LONG position
+      if(rem>0) q.push({price:row.price, qty:rem, date:row.date, time:row.time, side:'LONG', product:row.product});
+    }
+  });
+
+  if(csvT.length===0){
+    showCsvError(`${rawRows.length} ordres trouvés mais aucun trade complet reconstruit.<br><br>
+      Raison : le CSV ne contient que des entrées <em>sans</em> les sorties correspondantes.<br>
+      ➜ Exportez une plage qui inclut les <strong>ouvertures ET fermetures</strong> de trades.`);
+    return;
+  }
+
+  // ── Show preview ──
+  const prev=document.getElementById('csv-prev');
+  prev.style.display='block';
+  const totalPnl = csvT.reduce((s,t)=>s+t.pnl,0);
+  const wins = csvT.filter(t=>t.pnl>0).length;
+  document.getElementById('csv-cnt').textContent =
+    `${csvT.length} trades | ${wins}W ${csvT.length-wins}L | P&L total: ${fmt(totalPnl)}`;
+  document.getElementById('csv-ok').style.display='';
+
+  document.getElementById('csv-rows').innerHTML=
+    `<div style="display:grid;grid-template-columns:70px 52px 88px 70px 70px 70px 80px;gap:5px;
+       padding:5px 0;border-bottom:1px solid var(--border2);font-size:10px;color:var(--text3)">
+      <span>SYMBOLE</span><span>DIR</span><span>DATE</span><span>ENTRÉE</span><span>SORTIE</span><span>QTÉ</span><span>P&amp;L $</span>
+    </div>`+
+    csvT.slice(0,15).map(t=>
+      `<div style="display:grid;grid-template-columns:70px 52px 88px 70px 70px 70px 80px;gap:5px;
+         padding:5px 0;border-bottom:1px solid var(--border);align-items:center">
+        <span style="font-family:var(--mono);font-size:12px">${t.sym}</span>
+        <span class="side-badge side-${t.side.toLowerCase()}">${t.side}</span>
+        <span style="font-size:11px;color:var(--text3)">${t.date}</span>
+        <span style="font-family:var(--mono);font-size:11px">${t.entry.toFixed(2)}</span>
+        <span style="font-family:var(--mono);font-size:11px">${t.exit.toFixed(2)}</span>
+        <span style="font-family:var(--mono);font-size:11px">${t.qty}</span>
+        <span class="${t.pnl>=0?'pnl-pos':'pnl-neg'}" style="font-size:12px">${fmt(t.pnl)}</span>
+      </div>`
+    ).join('')+
+    (csvT.length>15?`<div style="text-align:center;color:var(--text3);padding:8px;font-size:11px">
+      ... et ${csvT.length-15} autres trades</div>`:'');
+}
+
+function showCsvError(msg){
+  const prev=document.getElementById('csv-prev');
+  prev.style.display='block';
+  document.getElementById('csv-cnt').textContent='';
+  document.getElementById('csv-ok').style.display='none';
+  document.getElementById('csv-rows').innerHTML=
+    `<div style="background:rgba(255,77,109,0.08);border:1px solid rgba(255,77,109,0.3);
+       border-radius:8px;padding:14px;font-size:12px;line-height:1.9;color:var(--text2)">
+      ❌ ${msg}</div>`;
+}
+
+// Split CSV row handling quoted fields with commas inside
+function splitCsvRow(line){
+  const res=[];let cur='';let inQ=false;
+  for(const c of line){
+    if(c==='"'){inQ=!inQ;}
+    else if(c===','&&!inQ){res.push(cur);cur='';}
+    else cur+=c;
+  }
+  res.push(cur);
+  return res;
+}
+function clean(s){return s?String(s).replace(/"/g,'').trim():'';}
+
+function doCsvImport(){
+  if(!csvT.length)return;
+  const nd=csvT.filter(nt=>!T.some(t=>t.sym===nt.sym&&t.date===nt.date&&Math.abs(t.pnl-nt.pnl)<0.01));
+  T.push(...nd);save();closeImport();renderAll();
+  toast(`✅ ${nd.length} trades importés depuis Tradovate CSV!`);
+  document.getElementById('csv-prev').style.display='none';
+  document.getElementById('csv-ok').style.display='none';
+  csvT=[];
+}
+
+// ══════════════════════════════════════════════════════════
+//  OAUTH TRADOVATE — flux automatique complet (GitHub Pages)
+//
+//  Flux :
+//  1. Popup → trader.tradovate.com/oauth?client_id=8&redirect_uri=callback.html
+//  2. User se connecte sur Tradovate
+//  3. Tradovate redirige → callback.html?code=XXXX
+//  4. callback.html fait postMessage({code}) → ici
+//  5. On échange code → accessToken → on charge les trades
+//
+//  ⚠️  IMPORTANT : callback.html doit être hébergé à la même
+//      URL que trading-journal.html (même GitHub Pages repo)
+// ══════════════════════════════════════════════════════════
+
+const TV_CID      = 8;
+const TV_SEC      = 'f03741b6-f634-48d6-9308-c8fb871150c2';
+const TV_AUTH_URL = 'https://trader.tradovate.com/oauth';
+
+// Détecte l'URL de base automatiquement (fonctionne en local ET sur GitHub Pages)
+function getCallbackUri(){
+  const base = window.location.href.replace(/\/[^\/]*$/, '/');
+  return base + 'callback.html';
+}
+
+let oauthPopup = null;
+let oauthPoll  = null;
+let oauthToken = null;
+
+function doOAuth(){
+  const env      = apiEnv;
+  const tokenUrl = env==='live'
+    ? 'https://live.tradovateapi.com/auth/oauthtoken'
+    : 'https://demo.tradovateapi.com/auth/oauthtoken';
+  const base     = env==='live'
+    ? 'https://live.tradovateapi.com/v1'
+    : 'https://demo.tradovateapi.com/v1';
+
+  const redirectUri = getCallbackUri();
+
+  // Construire l'URL OAuth officielle Tradovate
+  const authUrl = TV_AUTH_URL
+    + '?response_type=code'
+    + '&client_id='    + encodeURIComponent(TV_CID)
+    + '&redirect_uri=' + encodeURIComponent(redirectUri);
+
+  // Écouter le postMessage depuis callback.html AVANT d'ouvrir la popup
+  let msgHandler = null;
+  const codePromise = new Promise((resolve) => {
+    msgHandler = (e) => {
+      // Accepter uniquement depuis notre propre origine
+      if(e.origin !== window.location.origin) return;
+      if(e.data?.type === 'TV_CODE' && e.data.code){
+        window.removeEventListener('message', msgHandler);
+        resolve(e.data.code);
+      }
+      if(e.data?.type === 'TV_ERROR'){
+        window.removeEventListener('message', msgHandler);
+        resolve(null);
+      }
+    };
+    window.addEventListener('message', msgHandler);
+  });
+
+  // Ouvrir la popup OAuth
+  const popup = window.open(authUrl, 'tv_oauth',
+    'width=520,height=660,left=' + Math.round((screen.width-520)/2) +
+    ',top=' + Math.round((screen.height-660)/2) +
+    ',resizable=yes,scrollbars=yes');
+
+  if(!popup || popup.closed){
+    window.removeEventListener('message', msgHandler);
+    setApiSt('❌ Popup bloquée — autorisez les popups pour cette page.','var(--red)');
+    return;
+  }
+  oauthPopup = popup;
+
+  // UI d'attente
+  document.getElementById('api-st').innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;
+      background:rgba(0,229,160,0.06);border:1px solid rgba(0,229,160,0.15);
+      border-radius:10px;padding:14px;font-size:12px;line-height:1.8">
+      <span style="font-size:24px;animation:spin 2s linear infinite;display:inline-block">🔄</span>
+      <span>
+        <strong style="color:var(--accent)">Connexion en cours...</strong><br>
+        <span style="color:var(--text3)">Connectez-vous sur <strong style="color:var(--text2)">trader.tradovate.com</strong> dans la popup.<br>
+        TradeFlow récupèrera vos trades <strong style="color:var(--text2)">automatiquement</strong> après connexion.</span>
+      </span>
+    </div>`;
+
+  // Poll fermeture popup (annulation user)
+  clearInterval(oauthPoll);
+  oauthPoll = setInterval(()=>{
+    if(popup.closed){
+      clearInterval(oauthPoll);
+      window.removeEventListener('message', msgHandler);
+      if(!oauthToken){
+        document.getElementById('api-st').innerHTML='';
+        setApiSt('ℹ️ Fenêtre fermée. Cliquez sur "Se connecter" pour réessayer.','var(--text3)');
+      }
+    }
+  }, 800);
+
+  // Attendre le code OAuth depuis callback.html
+  codePromise.then(async (code) => {
+    clearInterval(oauthPoll);
+    if(popup && !popup.closed) popup.close();
+
+    if(!code){
+      setApiSt('❌ Connexion annulée ou erreur Tradovate.','var(--red)');
+      return;
+    }
+
+    setApiSt('🔄 Échange du code OAuth → token...','var(--text2)');
+    showPg('api');
+
+    try{
+      // Échanger le code contre un accessToken
+      const proxy = url => `https://corsproxy.io/?${encodeURIComponent(url)}`;
+      const r = await fetch(proxy(tokenUrl), {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          grant_type:    'authorization_code',
+          client_id:     TV_CID,
+          client_secret: TV_SEC,
+          code:          code,
+          redirect_uri:  redirectUri
+        })
+      });
+      hidePg('api');
+      const d = await r.json();
+
+      if(d.errorText || d.error){
+        // CID 8 = app publique, le secret ne correspond peut-être pas
+        // pour l'échange de code — fallback vers auth directe par username/password
+        setApiSt('','');
+        showDirectLoginFallback(base);
+        return;
+      }
+
+      const token = d.accessToken || d.access_token;
+      if(!token){ showDirectLoginFallback(base); return; }
+
+      oauthToken = token;
+      await loadTradesWithToken(token, base);
+
+    }catch(err){
+      hidePg('api');
+      setApiSt(`❌ ${err.message}`,'var(--red)');
+    }
+  });
+}
+
+// Fallback si l'échange de code échoue (CID 8 non autorisé pour OAuth code exchange)
+// → connexion directe username/password (fonctionne pour comptes live perso Tradovate)
+function showDirectLoginFallback(base){
+  const authUrl = env==='live'
+    ? 'https://live.tradovateapi.com/v1/auth/accesstokenrequest'
+    : 'https://demo.tradovateapi.com/v1/auth/accesstokenrequest';
+
+  document.getElementById('api-st').innerHTML = `
+    <div style="background:rgba(247,201,72,0.07);border:1px solid rgba(247,201,72,0.25);
+      border-radius:10px;padding:12px;font-size:12px;line-height:1.8;margin-bottom:12px">
+      <strong style="color:var(--yellow)">ℹ️ Connexion directe requise</strong><br>
+      <span style="color:var(--text3)">Le CID public Tradovate ne supporte pas l'échange de code OAuth.<br>
+      Entrez vos identifiants Tradovate ci-dessous :</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px">
+      <input id="fb-user" type="text" placeholder="Username Tradovate (ex: APEX4329540000031)"
+        style="padding:9px 12px;border-radius:8px;border:1px solid var(--border2);
+          background:var(--bg3);color:var(--text);font-size:12px">
+      <input id="fb-pass" type="password" placeholder="Mot de passe Tradovate"
+        style="padding:9px 12px;border-radius:8px;border:1px solid var(--border2);
+          background:var(--bg3);color:var(--text);font-size:12px">
+    </div>
+    <button onclick="doDirectLogin('${base}')" style="
+      width:100%;background:linear-gradient(135deg,#00e5a0,#00b07a);
+      color:#000;font-weight:700;font-size:13px;padding:10px;
+      border-radius:10px;border:none;cursor:pointer">
+      ⚡ Se connecter
+    </button>`;
+}
+
+async function doDirectLogin(base){
+  const user = document.getElementById('fb-user')?.value.trim();
+  const pass = document.getElementById('fb-pass')?.value.trim();
+  if(!user||!pass){toast('❌ Entrez username et mot de passe');return;}
+
+  setApiSt('🔄 Connexion...','var(--text2)');
+  showPg('api');
+
+  try{
+    const proxy = url => `https://corsproxy.io/?${encodeURIComponent(url)}`;
+    const loginUrl = apiEnv==='live'
+      ? 'https://live.tradovateapi.com/v1/auth/accesstokenrequest'
+      : 'https://demo.tradovateapi.com/v1/auth/accesstokenrequest';
+
+    const r = await fetch(proxy(loginUrl),{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        name: user, password: pass,
+        appId:'Sample App', appVersion:'1.0',
+        cid: TV_CID, sec: TV_SEC,
+        deviceId:'tf-'+Math.random().toString(36).slice(2,10)
+      })
+    });
+    hidePg('api');
+    const d = await r.json();
+
+    if(d.errorText){
+      setApiSt(`❌ ${d.errorText}`,'var(--red)'); return;
+    }
+    const token = d.accessToken;
+    if(!token){setApiSt('❌ Aucun token reçu.','var(--red)');return;}
+
+    oauthToken = token;
+    await loadTradesWithToken(token, base);
+
+  }catch(err){
+    hidePg('api');
+    setApiSt(`❌ ${err.message}`,'var(--red)');
+  }
+}
+
+async function loadTradesWithToken(token,base){
+  showPg('api');
+  try{
+    const proxy=url=>`https://corsproxy.io/?${encodeURIComponent(url)}`;
+    const days=parseInt(document.getElementById('ap-days').value)||30;
+    const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-days);
+
+    // Liste des comptes
+    const r1=await fetch(proxy(base+'/account/list'),
+      {headers:{'Authorization':'Bearer '+token}});
+    const accounts=await r1.json();
+    if(!Array.isArray(accounts)||!accounts.length){
+      hidePg('api');
+      setApiSt('ℹ️ Aucun compte trouvé. Token invalide ou expiré.','var(--text2)'); return;
+    }
+
+    setApiSt(`✅ ${accounts.length} compte(s). Récupération des fills...`,'var(--accent)');
+
+    // Fills
+    const r2=await fetch(proxy(base+'/fill/list'),
+      {headers:{'Authorization':'Bearer '+token}});
+    hidePg('api');
+    const fills=await r2.json();
+
+    if(!Array.isArray(fills)||!fills.length){
+      setApiSt(`✅ Connecté (${accounts.map(a=>a.name).join(', ')}) — aucun trade dans la période.`,'var(--text2)'); return;
+    }
+
+    apiT=[];
+    const byOrder={};
+    fills.forEach(f=>{const oid=f.orderId||f.id;if(!byOrder[oid])byOrder[oid]=[];byOrder[oid].push(f);});
+    Object.values(byOrder).forEach((flist,idx)=>{
+      const f=flist[0];
+      const dtRaw=f.timestamp||f.tradeTime||f.createTime||'';
+      const date=parseDate(dtRaw);
+      if(date&&new Date(date)<cutoff)return;
+      const sym=String(f.contractId||f.symbol||f.name||'UNKNOWN').toUpperCase().replace(/[FGHJKMNQUVXZ]\d$/i,'').replace(/\d+$/,'');
+      const isSell=String(f.action||f.side||'Buy').toLowerCase().includes('sell');
+      const qty=flist.reduce((s,x)=>s+(parseFloat(x.qty||x.quantity)||0),0)||1;
+      const avgP=flist.reduce((s,x)=>s+(parseFloat(x.price||0)),0)/flist.length||0;
+      const pnl=parseFloat(f.realizedPnl||f.pnl||0)||0;
+      const mult=getMultiplier(sym);
+      const pf=selectedPropFirm?[selectedPropFirm]:[];
+      apiT.push({
+        id:Date.now()+idx, sym,
+        side:isSell?'SHORT':'LONG',
+        entry:avgP, exit:avgP, qty, pnl,
+        pnlPct:avgP>0?(pnl/(avgP*qty))*100:0,
+        date:date||new Date().toISOString().split('T')[0],
+        time:parseTime(dtRaw)||'09:30',
+        strat:'',emotion:'',rating:3,
+        tags:['Tradovate OAuth',apiEnv,...pf],
+        notes:`Mult: $${mult}/pt`
+      });
+    });
+
+    if(!apiT.length){setApiSt('ℹ️ Aucun trade dans la période.','var(--text2)');return;}
+
+    setApiSt(`✅ ${apiT.length} trades depuis ${accounts.map(a=>a.name||a.id).join(', ')}!`,'var(--accent)');
+    const prev=document.getElementById('api-prev'); prev.style.display='block';
+    const wins=apiT.filter(t=>t.pnl>0).length;
+    document.getElementById('api-cnt').textContent=`${apiT.length} trades | ${wins}W ${apiT.length-wins}L`;
+    document.getElementById('api-ok').style.display='';
+    document.getElementById('api-rows').innerHTML=
+      apiT.slice(0,8).map(t=>
+        `<div style="display:grid;grid-template-columns:75px 55px 95px 70px 80px;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">
+          <span style="font-family:var(--mono);color:var(--text)">${t.sym}</span>
+          <span class="side-badge side-${t.side.toLowerCase()}">${t.side}</span>
+          <span style="color:var(--text3);font-size:11px">${t.date}</span>
+          <span style="font-family:var(--mono);font-size:11px">${t.entry.toFixed(2)}</span>
+          <span class="${t.pnl>=0?'pnl-pos':'pnl-neg'}">${fmt(t.pnl)}</span>
+        </div>`).join('')+
+      (apiT.length>8?`<div style="text-align:center;color:var(--text3);font-size:11px;padding:6px">... et ${apiT.length-8} autres</div>`:'');
+
+  }catch(err){
+    hidePg('api');
+    setApiSt(`❌ ${err.message}\n→ Token expiré? Reconnectez-vous.`,'var(--red)');
+  }
+}
+
+function doAPIImport(){
+  const nd=apiT.filter(nt=>!T.some(t=>t.sym===nt.sym&&t.date===nt.date&&Math.abs(t.pnl-nt.pnl)<0.01));
+  T.push(...nd);save();closeImport();renderAll();
+  toast(`✅ ${nd.length} trades importés via Tradovate OAuth!`);
+  document.getElementById('api-prev').style.display='none';
+  document.getElementById('api-ok').style.display='none';
+  document.getElementById('api-st').innerHTML='';
+  apiT=[];
+}
+function setApiSt(m,c){
+  const el=document.getElementById('api-st');
+  if(el){el.textContent=m;el.style.color=c||'var(--text2)';}
+}
+
+// HELPERS
+function showPg(p){document.getElementById(p+'-pg').style.display='block';document.getElementById(p+'-pf').style.width='0%';setTimeout(()=>document.getElementById(p+'-pf').style.width='60%',50);}
+function hidePg(p){const el=document.getElementById(p+'-pf');el.style.width='100%';setTimeout(()=>{document.getElementById(p+'-pg').style.display='none';el.style.width='0%';},400);}
+function animPg(id,cb){const el=document.getElementById(id);el.style.width='90%';setTimeout(()=>{el.style.width='100%';setTimeout(cb,300);},400);}
+function parseDate(s){
+  if(!s)return null;
+  try{const d=new Date(s);if(!isNaN(d.getTime()))return d.toISOString().split('T')[0];}catch(e){}
+  const m=s.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+  if(m){const y=m[3].length===2?'20'+m[3]:m[3];return `${y}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}`;}
+  return null;
+}
+function parseTime(s){if(!s)return'09:30';const m=s.match(/(\d{1,2}):(\d{2})/);return m?`${m[1].padStart(2,'0')}:${m[2]}`:'09:30';}
+function fmt(v){return(v>=0?'+':'')+'$'+Math.abs(v).toFixed(2);}
+function toast(m){const t=document.getElementById('toast-el');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+
+// RENDER
+function renderAll(){updStats();drawEquity();drawSess();drawStrat();drawSym();drawKeyStats();drawTable('dash-table');document.getElementById('badge').textContent=T.length;}
+function updateCap(v){cap=parseFloat(v)||10000;localStorage.setItem('tf_cap',cap);renderAll();}
+
+function updStats(){
+  const wins=T.filter(t=>t.pnl>0),loss=T.filter(t=>t.pnl<=0);
+  const tot=T.reduce((s,t)=>s+t.pnl,0),wr=T.length?(wins.length/T.length*100):0;
+  const gw=wins.reduce((s,t)=>s+t.pnl,0),gl=Math.abs(loss.reduce((s,t)=>s+t.pnl,0));
+  const pf=gl>0?gw/gl:wins.length>0?999:0;
+  document.getElementById('s-pnl').textContent=fmt(tot);document.getElementById('s-pnl').className='stat-value '+(tot>=0?'green':'red');
+  const pct=cap>0?(tot/cap*100):0;
+  document.getElementById('s-pnl-d').textContent=(pct>=0?'↑ ':'↓ ')+Math.abs(pct).toFixed(2)+'%';document.getElementById('s-pnl-d').className='stat-delta '+(pct>=0?'up':'down');
+  document.getElementById('s-wr').textContent=wr.toFixed(1)+'%';document.getElementById('s-wr-d').textContent=T.length?`${wins.length}W sur ${T.length}`:'— aucun trade';
+  document.getElementById('s-pf').textContent=pf===999?'∞':pf.toFixed(2);document.getElementById('s-tot').textContent=T.length;document.getElementById('s-wl').textContent=`${wins.length}W / ${loss.length}L`;
+  let sc=50;if(T.length>0){sc=Math.round(wr*0.4+Math.min(pf,5)*10+(pct>0?15:0)+Math.min(T.length,20)*0.5);sc=Math.max(0,Math.min(100,sc));}
+  document.getElementById('score-num').textContent=sc;document.getElementById('score-pct').textContent=sc;document.getElementById('score-ring').style.strokeDashoffset=163-(163*sc/100);
+  document.getElementById('eq-meta').textContent=`$${cap.toLocaleString()} → ${fmt(cap+tot)}`;
+}
+function drawEquity(){
+  const line=document.getElementById('eq-line'),area=document.getElementById('eq-area'),ph=document.getElementById('eq-ph');
+  if(T.length===0){line.setAttribute('d','');area.setAttribute('d','');ph.style.display='';return;}ph.style.display='none';
+  const sorted=[...T].sort((a,b)=>new Date(a.date+' '+a.time)-new Date(b.date+' '+b.time));
+  let cum=cap;const pts=[cum];sorted.forEach(t=>{cum+=t.pnl;pts.push(cum);});
+  const W=600,H=140,pad=10,xs=pts.map((_,i)=>i/(pts.length-1)*W),mn=Math.min(...pts),mx=Math.max(...pts),rng=mx-mn||1;
+  const yp=y=>pad+(1-(y-mn)/rng)*(H-2*pad);
+  const d=pts.map((p,i)=>`${i===0?'M':'L'}${xs[i].toFixed(1)},${yp(p).toFixed(1)}`).join(' ');
+  const up=pts[pts.length-1]>=pts[0],c=up?'#00e5a0':'#ff4d6d';
+  line.setAttribute('d',d);line.setAttribute('stroke',c);
+  const svg=document.getElementById('eq-svg'),defs=svg.querySelector('defs');let rg=defs.querySelector('#rl');
+  if(!rg){rg=document.createElementNS('http://www.w3.org/2000/svg','linearGradient');rg.setAttribute('id','rl');rg.setAttribute('x1','0');rg.setAttribute('y1','0');rg.setAttribute('x2','0');rg.setAttribute('y2','1');rg.innerHTML=`<stop offset="0%" stop-color="#ff4d6d" stop-opacity="0.2"/><stop offset="100%" stop-color="#ff4d6d" stop-opacity="0"/>`;defs.appendChild(rg);}
+  area.setAttribute('d',d+` L${W},${H} L0,${H} Z`);area.setAttribute('fill',up?'url(#eg)':'url(#rl)');
+}
+function drawSess(){
+  const w=document.getElementById('sess-bars');if(T.length===0){w.innerHTML=`<div style="text-align:center;width:100%;color:var(--text3);font-size:12px;padding:20px 0">Aucune donnée</div>`;return;}
+  const bd={};T.forEach(t=>{if(!bd[t.date])bd[t.date]=0;bd[t.date]+=t.pnl;});
+  const dates=Object.keys(bd).sort().slice(-7),vals=dates.map(d=>bd[d]),ma=Math.max(1,...vals.map(Math.abs));
+  w.innerHTML=dates.map((d,i)=>{const v=vals[i],h=Math.max(4,Math.round(Math.abs(v)/ma*70));return`<div class="bar-group"><div class="bar-wrap"><div class="bar ${v>=0?'win-bar':'loss-bar'}" style="height:${h}px" title="${fmt(v)}"></div></div><div class="bar-label">${d.slice(5).replace('-','/')}</div></div>`;}).join('');
+}
+function drawStrat(){
+  const w=document.getElementById('strat-wrap');const bs={};T.forEach(t=>{const s=t.strat||'Autre';if(!bs[s])bs[s]=0;bs[s]+=t.pnl;});
+  const ks=Object.keys(bs);if(!ks.length){w.innerHTML=`<span style="color:var(--text3);font-size:12px">Aucune donnée</span>`;return;}
+  const cols=['#00e5a0','#4d9fff','#a78bfa','#f7c948','#ff4d6d'];
+  const tot=Object.values(bs).reduce((a,b)=>a+Math.abs(b),0)||1,C=2*Math.PI*32;let cd=0;
+  const segs=ks.map((k,i)=>{const fr=Math.abs(bs[k])/tot,da=fr*C,off=C-cd;cd+=da;return`<circle cx="36" cy="36" r="32" fill="none" stroke="${cols[i%5]}" stroke-width="8" stroke-dasharray="${da.toFixed(2)} ${(C-da).toFixed(2)}" stroke-dashoffset="${off.toFixed(2)}" transform="rotate(-90 36 36)"/>`;}).join('');
+  const leg=ks.map((k,i)=>`<div class="legend-item"><div class="legend-dot" style="background:${cols[i%5]}"></div><span style="color:var(--text2)">${k}</span><span style="margin-left:auto;font-family:var(--mono);font-size:11px">${fmt(bs[k])}</span></div>`).join('');
+  w.innerHTML=`<svg viewBox="0 0 72 72" width="80" height="80" style="flex-shrink:0">${segs}</svg><div class="legend" style="flex:1">${leg}</div>`;
+}
+function drawSym(){
+  const w=document.getElementById('sym-bars');const bs={};T.forEach(t=>{if(!bs[t.sym])bs[t.sym]=0;bs[t.sym]+=t.pnl;});
+  const syms=Object.entries(bs).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  if(!syms.length){w.innerHTML=`<span style="color:var(--text3);font-size:12px">Aucune donnée</span>`;return;}
+  const ma=Math.max(1,...syms.map(s=>Math.abs(s[1])));
+  w.innerHTML=syms.map(([s,p])=>{const pct=Math.abs(p)/ma*100,c=p>=0?'var(--accent)':'var(--red)';return`<div class="prog-item"><div class="prog-label-row"><span class="prog-label" style="font-family:var(--mono)">${s}</span><span class="prog-val" style="color:${c}">${fmt(p)}</span></div><div class="prog-track"><div class="prog-fill" style="width:${pct}%;background:${c}"></div></div></div>`;}).join('');
+}
+function drawKeyStats(){
+  const w=document.getElementById('key-stats');if(T.length===0){w.innerHTML=`<div style="color:var(--text3);font-size:12px">Aucune donnée</div>`;return;}
+  const wins=T.filter(t=>t.pnl>0),loss=T.filter(t=>t.pnl<=0);
+  const aw=wins.length?wins.reduce((s,t)=>s+t.pnl,0)/wins.length:0;
+  const al=loss.length?loss.reduce((s,t)=>s+t.pnl,0)/loss.length:0;
+  const wr=T.length?wins.length/T.length:0,exp=wr*aw+(1-wr)*al,rr=al?Math.abs(aw/al):0;
+  w.innerHTML=[['Avg Win',fmt(aw),'var(--accent)'],['Avg Loss',fmt(al),'var(--red)'],['R:R',rr.toFixed(2),'var(--blue)'],['Expectancy',fmt(exp),exp>=0?'var(--accent)':'var(--red)']].map(([l,v,c])=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text2)">${l}</span><span style="font-family:var(--mono);color:${c}">${v}</span></div>`).join('');
+}
+function drawTable(id){
+  const w=document.getElementById(id);
+  let f=[...T].sort((a,b)=>new Date(b.date+' '+b.time)-new Date(a.date+' '+a.time));
+  if(filt_active==='LONG')f=f.filter(t=>t.side==='LONG');
+  else if(filt_active==='SHORT')f=f.filter(t=>t.side==='SHORT');
+  else if(filt_active==='WIN')f=f.filter(t=>t.pnl>0);
+  else if(filt_active==='LOSS')f=f.filter(t=>t.pnl<=0);
+  if(!f.length){w.innerHTML=`<div class="no-results">📭 Aucun trade correspondant.</div>`;return;}
+  const rows=f.map(t=>{
+    const stars=Array.from({length:5},(_,i)=>`<span class="star${i<t.rating?' filled':''}">★</span>`).join('');
+    const tags=t.tags.map(g=>`<span class="tag">${g}</span>`).join('')||'—';
+    return`<tr><td><span class="symbol">${t.sym}</span></td><td><span class="side-badge side-${t.side.toLowerCase()}">${t.side}</span></td><td style="font-family:var(--mono)">${t.date}</td><td style="font-family:var(--mono)">$${t.entry.toFixed(2)}</td><td style="font-family:var(--mono)">$${t.exit.toFixed(2)}</td><td style="font-family:var(--mono)">${t.qty}</td><td><span class="${t.pnl>=0?'pnl-pos':'pnl-neg'}">${fmt(t.pnl)}</span></td><td style="font-family:var(--mono);font-size:11px">${t.pnlPct>=0?'+':''}${t.pnlPct.toFixed(2)}%</td><td><span style="font-size:11px;color:var(--text2)">${t.strat||'—'}</span></td><td><div class="rating">${stars}</div></td><td>${tags}</td><td><button onclick="delTrade(${t.id})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px">🗑</button></td></tr>`;
+  }).join('');
+  w.innerHTML=`<table><thead><tr><th>Symbole</th><th>Dir</th><th>Date</th><th>Entrée</th><th>Sortie</th><th>Qté</th><th>P&L</th><th>%</th><th>Stratégie</th><th>Note</th><th>Tags</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+function renderJour(){drawTable('jour-table');}
+function filt(f,el){filt_active=f;document.querySelectorAll('.filter-pill').forEach(p=>p.classList.remove('active'));el.classList.add('active');drawTable('dash-table');}
+
+function renderAna(){
+  const wins=T.filter(t=>t.pnl>0),loss=T.filter(t=>t.pnl<=0);
+  const aw=wins.length?wins.reduce((s,t)=>s+t.pnl,0)/wins.length:0;
+  const al=loss.length?loss.reduce((s,t)=>s+t.pnl,0)/loss.length:0;
+  const mw=wins.length?Math.max(...wins.map(t=>t.pnl)):0,ml=loss.length?Math.min(...loss.map(t=>t.pnl)):0;
+  const wr=T.length?wins.length/T.length:0,exp=wr*aw+(1-wr)*al,rr=al?Math.abs(aw/al):0;
+  document.getElementById('a-aw').textContent=fmt(aw);document.getElementById('a-al').textContent=fmt(al);document.getElementById('a-mw').textContent=fmt(mw);document.getElementById('a-ml').textContent=fmt(ml);document.getElementById('a-rr').textContent=rr.toFixed(2);document.getElementById('a-ex').textContent=fmt(exp);
+  const bd={};T.forEach(t=>{if(!bd[t.date])bd[t.date]=0;bd[t.date]+=t.pnl;});const dv=Object.values(bd);
+  document.getElementById('a-bd').textContent=dv.length?fmt(Math.max(...dv)):'$0';document.getElementById('a-wd').textContent=dv.length?fmt(Math.min(...dv)):'$0';
+  // Cumul SVG
+  const svg=document.getElementById('cum-svg');if(T.length===0)return;
+  const sorted=[...T].sort((a,b)=>new Date(a.date)-new Date(b.date));let cum=0;const pts=[0];sorted.forEach(t=>{cum+=t.pnl;pts.push(cum);});
+  const W=600,H=160,pad=12,xs=pts.map((_,i)=>i/(pts.length-1)*W),mn=Math.min(...pts),mx=Math.max(...pts),rng=mx-mn||1;
+  const yp=y=>pad+(1-(y-mn)/rng)*(H-2*pad);const d=pts.map((p,i)=>`${i===0?'M':'L'}${xs[i].toFixed(1)},${yp(p).toFixed(1)}`).join(' ');
+  const up=pts[pts.length-1]>=0,c=up?'#00e5a0':'#ff4d6d';
+  svg.innerHTML=`<defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${c}" stop-opacity="0.2"/><stop offset="100%" stop-color="${c}" stop-opacity="0"/></linearGradient></defs><path d="${d} L${W},${H} L0,${H} Z" fill="url(#cg)"/><path d="${d}" fill="none" stroke="${c}" stroke-width="2.5"/>`;
+  // Dist chart
+  const dw=document.getElementById('dist-ch');if(!T.length){dw.innerHTML=`<span style="color:var(--text3);font-size:12px">Aucune donnée</span>`;return;}
+  const w2=wins.length,l2=loss.length,wr2=w2/(w2+l2)*100;
+  dw.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;gap:20px;height:100%"><svg viewBox="0 0 100 100" width="140" height="140" style="transform:rotate(-90deg)"><circle cx="50" cy="50" r="40" fill="none" stroke="var(--bg3)" stroke-width="14"/><circle cx="50" cy="50" r="40" fill="none" stroke="var(--accent)" stroke-width="14" stroke-dasharray="${(wr2/100*251).toFixed(1)} ${(251*(1-wr2/100)).toFixed(1)}" stroke-linecap="round"/><circle cx="50" cy="50" r="40" fill="none" stroke="var(--red)" stroke-width="14" stroke-dasharray="${((100-wr2)/100*251).toFixed(1)} ${(251*(wr2/100)).toFixed(1)}" stroke-dashoffset="${-(wr2/100*251).toFixed(1)}" stroke-linecap="round"/></svg><div style="display:flex;flex-direction:column;gap:12px"><div><div style="color:var(--accent);font-family:var(--mono);font-size:24px;font-weight:500">${w2}</div><div style="font-size:12px;color:var(--text3)">Wins (${wr2.toFixed(1)}%)</div></div><div><div style="color:var(--red);font-family:var(--mono);font-size:24px;font-weight:500">${l2}</div><div style="font-size:12px;color:var(--text3)">Losses (${(100-wr2).toFixed(1)}%)</div></div></div></div>`;
+}
+
+function cm(d){calM+=d;if(calM>11){calM=0;calY++;}if(calM<0){calM=11;calY--;}renderCal();}
+function renderCal(){
+  const months=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  document.getElementById('cal-lbl').textContent=`${months[calM]} ${calY}`;
+  const bd={};T.forEach(t=>{if(!bd[t.date])bd[t.date]=0;bd[t.date]+=t.pnl;});
+  const fd=new Date(calY,calM,1).getDay(),dim=new Date(calY,calM+1,0).getDate(),days=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+  let html=`<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:8px">`;
+  days.forEach(d=>html+=`<div style="text-align:center;font-size:11px;color:var(--text3);font-family:var(--mono);padding:6px">${d}</div>`);
+  html+=`</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px">`;
+  for(let i=0;i<fd;i++)html+=`<div></div>`;
+  for(let d=1;d<=dim;d++){
+    const ds=`${calY}-${String(calM+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const pnl=bd[ds];const today=ds===new Date().toISOString().split('T')[0];
+    let bg='var(--bg3)',c='var(--text2)',bdr='1px solid var(--border)';
+    if(pnl!==undefined){bg=pnl>0?'rgba(0,229,160,.15)':'rgba(255,77,109,.15)';c=pnl>0?'var(--accent)':'var(--red)';bdr=pnl>0?'1px solid rgba(0,229,160,.4)':'1px solid rgba(255,77,109,.4)';}
+    if(today)bdr='1px solid var(--blue)';
+    html+=`<div style="background:${bg};border:${bdr};border-radius:8px;padding:8px;min-height:60px"><div style="font-size:12px;color:${c};font-weight:600">${d}</div>${pnl!==undefined?`<div style="font-size:9px;font-family:var(--mono);color:${c};margin-top:2px">${fmt(pnl)}</div>`:''}</div>`;
+  }
+  html+=`</div>`;document.getElementById('cal-grid').innerHTML=html;
+}
+
+renderAll();renderCal();initPropFirms();
+</script>
+</body>
+</html>
