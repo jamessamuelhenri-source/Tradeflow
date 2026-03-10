@@ -630,9 +630,7 @@ async function doForgotPassword(){
 
 async function doLogout(){
   await db.auth.signOut();
-  currentUser = null; currentProfile = null;
-  T = []; renderAll();
-  document.getElementById('auth-overlay').classList.remove('hidden');
+  window.location.reload();
 }
 
 // ══════════════════════════════════════════════════════════
@@ -712,10 +710,14 @@ const _origSaveTrade = typeof saveTrade !== 'undefined' ? saveTrade : null;
 // ══════════════════════════════════════════════════════════
 //  INIT — check auth on page load
 // ══════════════════════════════════════════════════════════
-db.auth.onAuthStateChange(async (event, session) => {
+let profileLoaded = false;
+
+async function initAuth(){
+  const { data: { session } } = await db.auth.getSession();
   if(session?.user){
     document.getElementById('auth-overlay').classList.add('hidden');
     await loadProfile(session.user);
+    profileLoaded = true;
     if(window.location.search.includes('subscribed=1')){
       toast('🎉 Bienvenue sur TradeFlow Pro !');
       await db.from('profiles').update({ plan:'pro' }).eq('id', session.user.id);
@@ -725,15 +727,20 @@ db.auth.onAuthStateChange(async (event, session) => {
     document.getElementById('auth-overlay').classList.remove('hidden');
     if(window.location.hash === '#signup') authTab('signup');
   }
-});
+}
 
-// Also check existing session immediately on load
-db.auth.getSession().then(async ({ data: { session } }) => {
-  if(session?.user){
+db.auth.onAuthStateChange(async (event, session) => {
+  if(event === 'SIGNED_IN' && session?.user && !profileLoaded){
     document.getElementById('auth-overlay').classList.add('hidden');
     await loadProfile(session.user);
+    profileLoaded = true;
+  }
+  if(event === 'SIGNED_OUT'){
+    document.getElementById('auth-overlay').classList.remove('hidden');
   }
 });
+
+initAuth();
 
 if(window.location.hash === '#signup') authTab('signup');
 
