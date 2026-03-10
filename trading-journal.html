@@ -6,7 +6,6 @@
 <title>TradeFlow — Trading Journal</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://js.stripe.com/v3/"></script>
 <style>
 :root{--bg:#0a0c10;--bg2:#0f1117;--bg3:#151820;--card:#12151e;--card2:#181c27;--border:#1e2433;--border2:#252d3d;--accent:#00e5a0;--accent2:#00b87d;--accent-dim:rgba(0,229,160,0.1);--red:#ff4d6d;--blue:#4d9fff;--blue-dim:rgba(77,159,255,0.12);--yellow:#f7c948;--purple:#a78bfa;--text:#e8eaf0;--text2:#8b92a8;--text3:#535870;--mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;--display:'Syne',sans-serif;}
 *{margin:0;padding:0;box-sizing:border-box;}body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden;}
@@ -566,7 +565,6 @@ const STRIPE_PRICE = 'price_1T9OBuKAvKdBvWV49FlwqnhT';
 
 const { createClient } = supabase;
 const db = createClient(SUPA_URL, SUPA_ANON);
-const stripe = Stripe(STRIPE_PK);
 
 let currentUser = null;
 let currentProfile = null;
@@ -658,23 +656,29 @@ async function doManageBilling(){
 // ══════════════════════════════════════════════════════════
 async function loadProfile(user){
   currentUser = user;
-  const { data } = await db.from('profiles').select('*').eq('id', user.id).single();
-  currentProfile = data;
 
-  // Update UI
-  const name  = user.user_metadata?.full_name || user.email.split('@')[0];
+  // Update UI immediately with auth user data (no DB needed)
+  const name = user.user_metadata?.full_name || user.email.split('@')[0];
   const initials = name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
   document.getElementById('user-avatar').textContent = initials;
-  document.getElementById('user-name').textContent   = name;
-  document.getElementById('settings-email').value    = user.email;
+  document.getElementById('user-name').textContent = name;
+  const emailEl = document.getElementById('settings-email');
+  if(emailEl) emailEl.value = user.email;
 
-  const isPro = data?.plan === 'pro' || (data?.trial_ends_at && new Date(data.trial_ends_at) > new Date());
-  document.getElementById('user-plan-badge').innerHTML =
-    isPro ? '<span class="plan-badge pro">✦ PRO</span>' : '<span class="plan-badge free">FREE</span>';
-  document.getElementById('plan-free-ui').style.display = isPro ? 'none' : '';
-  document.getElementById('plan-pro-ui').style.display  = isPro ? '' : 'none';
+  // Try to load profile from DB (non-blocking)
+  try {
+    const { data } = await db.from('profiles').select('*').eq('id', user.id).single();
+    currentProfile = data;
+    const isPro = data?.plan === 'pro' || (data?.trial_ends_at && new Date(data.trial_ends_at) > new Date());
+    document.getElementById('user-plan-badge').innerHTML =
+      isPro ? '<span class="plan-badge pro">✦ PRO</span>' : '<span class="plan-badge free">FREE</span>';
+    document.getElementById('plan-free-ui').style.display = isPro ? 'none' : '';
+    document.getElementById('plan-pro-ui').style.display  = isPro ? '' : 'none';
+  } catch(e) {
+    console.log('Profile load error (non-fatal):', e);
+  }
 
-  // Load trades from Supabase
+  // Load trades
   await loadTradesFromDB();
 }
 
