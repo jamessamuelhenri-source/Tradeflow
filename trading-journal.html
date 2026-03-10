@@ -229,8 +229,9 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
   <div class="topbar">
     <div class="page-title" id="page-title">Dashboard</div>
     <div class="topbar-actions">
-      <button class="btn btn-ghost" onclick="openImport()">🔗 Importer Tradovate</button>
-      <button class="btn btn-primary" onclick="openTrade()">＋ Ajouter Trade</button>
+      <button class="btn btn-ghost" onclick="openImport()">📂 Importer</button>
+      <button class="btn btn-ghost" onclick="openQuick()">⚡ Gain du jour</button>
+      <button class="btn btn-primary" onclick="openTrade()">＋ Trade détaillé</button>
     </div>
   </div>
   <div class="content">
@@ -407,23 +408,52 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
 </main>
 </div>
 
-<!-- TRADE MODAL -->
+<!-- QUICK MODAL — Gain du jour -->
+<div class="modal-overlay" id="quick-modal" onclick="if(event.target===this)closeQuick()">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-title"><span>⚡ Gain du jour</span><span class="modal-close" onclick="closeQuick()">✕</span></div>
+    <div style="display:flex;flex-direction:column;gap:14px;padding:4px 0">
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="q-date">
+      </div>
+      <div class="form-group">
+        <label>Résultat ($)</label>
+        <input type="number" id="q-pnl" placeholder="ex: +250 ou -80" step="0.01" style="font-size:22px;font-weight:700;text-align:center">
+      </div>
+      <div class="form-group">
+        <label>Note rapide (optionnel)</label>
+        <input type="text" id="q-note" placeholder="ex: Bon trade, discipliné...">
+      </div>
+      <div style="display:flex;gap:8px">
+        <div style="flex:1;padding:12px;background:var(--bg3);border-radius:10px;border:2px solid var(--border2);text-align:center;cursor:pointer" id="q-good" onclick="qSetMood('good')">😊 Bien</div>
+        <div style="flex:1;padding:12px;background:var(--bg3);border-radius:10px;border:2px solid var(--border2);text-align:center;cursor:pointer" id="q-neutral" onclick="qSetMood('neutral')">😐 Neutre</div>
+        <div style="flex:1;padding:12px;background:var(--bg3);border-radius:10px;border:2px solid var(--border2);text-align:center;cursor:pointer" id="q-bad" onclick="qSetMood('bad')">😤 Mal</div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeQuick()">Annuler</button>
+      <button class="btn btn-primary" onclick="saveQuick()">✓ Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- TRADE MODAL — Détaillé -->
 <div class="modal-overlay" id="trade-modal" onclick="if(event.target===this)closeTrade()">
   <div class="modal">
-    <div class="modal-title"><span>Nouveau Trade</span><span class="modal-close" onclick="closeTrade()">✕</span></div>
+    <div class="modal-title"><span>＋ Nouveau Trade</span><span class="modal-close" onclick="closeTrade()">✕</span></div>
     <div class="form-grid">
-      <div class="form-group"><label>Symbole</label><input type="text" id="f-sym" placeholder="ex: AAPL, ESU4, BTC" style="text-transform:uppercase"></div>
+      <div class="form-group"><label>Symbole</label><input type="text" id="f-sym" placeholder="ex: MNQ, ES, BTC" style="text-transform:uppercase"></div>
       <div class="form-group"><label>Direction</label><div class="side-toggle"><div class="side-btn long-btn sel" id="btn-long" onclick="selSide('LONG')">LONG</div><div class="side-btn short-btn" id="btn-short" onclick="selSide('SHORT')">SHORT</div></div></div>
-      <div class="form-group"><label>Date d'entrée</label><input type="date" id="f-date"></div>
+      <div class="form-group"><label>Date</label><input type="date" id="f-date"></div>
       <div class="form-group"><label>Heure</label><input type="time" id="f-time" value="09:30"></div>
-      <div class="form-group"><label>Prix d'entrée ($)</label><input type="number" id="f-entry" placeholder="0.00" step="0.01"></div>
-      <div class="form-group"><label>Prix de sortie ($)</label><input type="number" id="f-exit" placeholder="0.00" step="0.01"></div>
+      <div class="form-group"><label>Prix d'entrée</label><input type="number" id="f-entry" placeholder="0.00" step="0.01"></div>
+      <div class="form-group"><label>Prix de sortie</label><input type="number" id="f-exit" placeholder="0.00" step="0.01"></div>
       <div class="form-group"><label>Quantité</label><input type="number" id="f-qty" placeholder="1" min="0"></div>
+      <div class="form-group"><label>P&L ($) — ou laissez calculer</label><input type="number" id="f-pnl-override" placeholder="optionnel" step="0.01"></div>
       <div class="form-group"><label>Stratégie</label><select id="f-strat"><option value="">— Sélectionner —</option><option>Breakout</option><option>Mean Reversion</option><option>Momentum</option><option>Gap & Go</option><option>Scalping</option><option>Swing</option><option>Autre</option></select></div>
-      <div class="form-group"><label>Émotion</label><select id="f-emo"><option value="">— Sélectionner —</option><option>😊 Confiant</option><option>😐 Neutre</option><option>😰 Nerveux</option><option>😤 Impatient</option><option>😨 Craintif</option></select></div>
-      <div class="form-group"><label>Note ⭐</label><select id="f-rate"><option value="5">⭐⭐⭐⭐⭐ Excellent</option><option value="4">⭐⭐⭐⭐ Bon</option><option value="3" selected>⭐⭐⭐ Moyen</option><option value="2">⭐⭐ Mauvais</option><option value="1">⭐ Horrible</option></select></div>
-      <div class="form-group full"><label>Tags</label><input type="text" id="f-tags" placeholder="ex: FOMO, Stop respecté..."></div>
-      <div class="form-group full"><label>Notes</label><textarea id="f-notes" placeholder="Analyse, leçons apprises..."></textarea></div>
+      <div class="form-group"><label>Émotion</label><select id="f-emo"><option value="">— Sélectionner —</option><option>😊 Confiant</option><option>😐 Neutre</option><option>😰 Nerveux</option><option>😤 Impatient</option></select></div>
+      <div class="form-group full"><label>Notes</label><textarea id="f-notes" placeholder="Analyse, leçons..."></textarea></div>
     </div>
     <div class="modal-actions"><button class="btn btn-ghost" onclick="closeTrade()">Annuler</button><button class="btn btn-primary" onclick="saveTrade()">Enregistrer</button></div>
   </div>
@@ -435,7 +465,8 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
     <div class="modal-title"><span>🔗 Importer depuis Tradovate</span><span class="modal-close" onclick="closeImport()">✕</span></div>
     <div class="import-tabs">
       <div class="import-tab active" id="itab-csv" onclick="switchTab('csv')">📄 Import CSV</div>
-      <div class="import-tab" id="itab-api" onclick="switchTab('api')">⚡ Connexion API</div>
+      <div class="import-tab" id="itab-pdf" onclick="switchTab('pdf')">📋 Import PDF</div>
+      <div class="import-tab" id="itab-api" onclick="switchTab('api')">⚡ API Live</div>
     </div>
 
     <!-- CSV -->
@@ -479,6 +510,34 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
       <div class="modal-actions">
         <button class="btn btn-ghost" onclick="closeImport()">Annuler</button>
         <button class="btn btn-primary" id="csv-ok" style="display:none" onclick="doCsvImport()">✓ Importer les trades</button>
+      </div>
+    </div>
+
+    <!-- PDF IMPORT -->
+    <div class="import-panel" id="ipanel-pdf">
+      <div class="info-box green" style="margin-bottom:16px">
+        <strong>📋 Import PDF — Relevé de compte</strong><br>
+        <span style="color:var(--text3)">Glissez votre relevé PDF Tradovate, Apex, TopStep ou autre. L'IA va extraire automatiquement vos trades.</span>
+      </div>
+      <div class="drop-zone" id="pdf-dz"
+        onclick="document.getElementById('pdf-inp').click()"
+        ondragover="event.preventDefault();this.classList.add('drag-over')"
+        ondragleave="this.classList.remove('drag-over')"
+        ondrop="doPdfDrop(event)">
+        <div class="drop-icon">📋</div>
+        <div class="drop-title">Glissez votre fichier PDF ici</div>
+        <div class="drop-sub">Relevés Tradovate, Apex, TopStep, FTMO...</div>
+        <input type="file" id="pdf-inp" accept=".pdf" style="display:none" onchange="doPdfFile(this.files[0])">
+      </div>
+      <div class="prog" id="pdf-pg"><div class="prog-fill" id="pdf-pf"></div></div>
+      <div id="pdf-status" style="font-size:13px;color:var(--text3);text-align:center;min-height:20px;margin-bottom:8px"></div>
+      <div class="preview-box" id="pdf-prev">
+        <div class="preview-header"><span>Trades extraits</span><span id="pdf-cnt" style="color:var(--accent);font-family:var(--mono)"></span></div>
+        <div id="pdf-rows"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeImport()">Annuler</button>
+        <button class="btn btn-primary" id="pdf-ok" style="display:none" onclick="doPdfImport()">✓ Importer les trades</button>
       </div>
     </div>
 
@@ -764,34 +823,33 @@ function closeTrade(){document.getElementById('trade-modal').classList.remove('o
 function selSide(s){side=s;document.getElementById('btn-long').classList.toggle('sel',s==='LONG');document.getElementById('btn-short').classList.toggle('sel',s==='SHORT');}
 function saveTrade(){
   const sym=document.getElementById('f-sym').value.trim().toUpperCase();
-  const en=parseFloat(document.getElementById('f-entry').value);
-  const ex=parseFloat(document.getElementById('f-exit').value);
+  const en=parseFloat(document.getElementById('f-entry').value)||0;
+  const ex=parseFloat(document.getElementById('f-exit').value)||0;
   const qty=parseFloat(document.getElementById('f-qty').value)||1;
   const date=document.getElementById('f-date').value;
-  if(!sym||isNaN(en)||isNaN(ex)||!date){toast('❌ Symbole, entrée, sortie et date requis');return;}
-  const dir=side==='LONG'?1:-1,pnl=(ex-en)*qty*dir,pct=((ex-en)/en)*100*dir;
+  const pnlOv=document.getElementById('f-pnl-override').value;
+  if(!sym||!date){toast('❌ Symbole et date requis');return;}
+  const dir=side==='LONG'?1:-1;
+  const pnl=pnlOv!==''?parseFloat(pnlOv):(ex-en)*qty*dir;
+  const pct=en?((ex-en)/en)*100*dir:0;
   const trade={id:Date.now(),sym,side,entry:en,exit:ex,qty,pnl,pnlPct:pct,date,
     time:document.getElementById('f-time').value,
     strat:document.getElementById('f-strat').value,
     emotion:document.getElementById('f-emo').value,
-    rating:parseInt(document.getElementById('f-rate').value),
-    tags:document.getElementById('f-tags').value.split(',').map(t=>t.trim()).filter(Boolean),
-    notes:document.getElementById('f-notes').value
+    rating:3,tags:[],notes:document.getElementById('f-notes').value
   };
   T.push(trade);
   save();closeTrade();renderAll();toast('✅ Trade enregistré!');
-  // Sync to Supabase
   if(currentUser){
     db.from('trades').insert({
-      user_id:currentUser.id, sym:trade.sym, side:trade.side,
-      entry:trade.entry, exit:trade.exit, qty:trade.qty,
-      pnl:trade.pnl, pnl_pct:trade.pnlPct,
-      date:trade.date, time:trade.time,
-      strat:trade.strat, emotion:trade.emotion, rating:trade.rating,
-      tags:trade.tags, notes:trade.notes
+      user_id:currentUser.id,sym:trade.sym,side:trade.side,
+      entry:trade.entry,exit:trade.exit,qty:trade.qty,
+      pnl:trade.pnl,pnl_pct:trade.pnlPct,
+      date:trade.date,time:trade.time,
+      strat:trade.strat,emotion:trade.emotion,rating:3,tags:[],notes:trade.notes
     });
   }
-  ['f-sym','f-entry','f-exit','f-notes','f-tags'].forEach(id=>document.getElementById(id).value='');
+  ['f-sym','f-entry','f-exit','f-notes','f-pnl-override'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-qty').value='';
   document.getElementById('f-strat').value='';
   document.getElementById('f-emo').value='';
@@ -822,8 +880,118 @@ function selEnv(e){
   document.getElementById('env-l').className='env-btn'+(e==='live'?' l-sel':'');
 }
 
+// ── QUICK MODAL (Gain du jour) ──────────────────────────
+let qMood = 'neutral';
+function openQuick(){
+  document.getElementById('quick-modal').classList.add('open');
+  document.getElementById('q-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('q-pnl').value = '';
+  document.getElementById('q-note').value = '';
+  qSetMood('neutral');
+}
+function closeQuick(){ document.getElementById('quick-modal').classList.remove('open'); }
+function qSetMood(m){
+  qMood = m;
+  ['good','neutral','bad'].forEach(x=>{
+    const el = document.getElementById('q-'+x);
+    el.style.borderColor = x===m ? 'var(--accent)' : 'var(--border2)';
+    el.style.background  = x===m ? 'var(--accent-dim)' : 'var(--bg3)';
+  });
+}
+function saveQuick(){
+  const date = document.getElementById('q-date').value;
+  const pnl  = parseFloat(document.getElementById('q-pnl').value);
+  if(!date || isNaN(pnl)){ toast('❌ Date et P&L requis'); return; }
+  const emo = qMood==='good'?'😊 Confiant':qMood==='bad'?'😤 Impatient':'😐 Neutre';
+  const trade = {
+    id: Date.now(), sym: 'DAILY', side: pnl>=0?'LONG':'SHORT',
+    entry: 0, exit: 0, qty: 1, pnl, pnlPct: 0,
+    date, time: '09:30', strat: 'Journalier',
+    emotion: emo, rating: 3,
+    tags: ['journalier'], notes: document.getElementById('q-note').value
+  };
+  T.push(trade); save(); renderAll(); closeQuick();
+  toast('✅ Journée enregistrée : ' + (pnl>=0?'+':'')+pnl.toFixed(2)+'$');
+  if(currentUser){
+    db.from('trades').insert({
+      user_id:currentUser.id, sym:'DAILY', side:trade.side,
+      entry:0, exit:0, qty:1, pnl, pnl_pct:0,
+      date, time:'09:30', strat:'Journalier',
+      emotion:emo, rating:3, tags:['journalier'], notes:trade.notes
+    });
+  }
+}
 
-// ══════════════════════════════════════════════════════════
+// ── PDF IMPORT ──────────────────────────────────────────
+let pdfT = [];
+function doPdfDrop(e){ e.preventDefault(); document.getElementById('pdf-dz').classList.remove('drag-over'); doPdfFile(e.dataTransfer.files[0]); }
+async function doPdfFile(file){
+  if(!file||!file.name.endsWith('.pdf')){ toast('❌ Fichier PDF requis'); return; }
+  document.getElementById('pdf-status').textContent = '🔄 Lecture du PDF...';
+  document.getElementById('pdf-pg').style.display='block';
+  document.getElementById('pdf-pf').style.width='30%';
+  // Read PDF as base64
+  const reader = new FileReader();
+  reader.onload = async function(e){
+    const base64 = e.target.result.split(',')[1];
+    document.getElementById('pdf-pf').style.width='60%';
+    document.getElementById('pdf-status').textContent = '🤖 Analyse IA en cours...';
+    try {
+      const resp = await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          model:'claude-sonnet-4-20250514',
+          max_tokens:2000,
+          messages:[{role:'user',content:[
+            {type:'document',source:{type:'base64',media_type:'application/pdf',data:base64}},
+            {type:'text',text:`Extrait tous les trades de ce relevé. Réponds UNIQUEMENT en JSON valide, format:
+[{"date":"YYYY-MM-DD","sym":"SYMBOLE","side":"LONG ou SHORT","pnl":123.45,"qty":1,"entry":0,"exit":0,"notes":""}]
+Si tu ne trouves pas de trades individuels, crée une entrée par jour avec le P&L journalier total. Ne mets rien d'autre que le JSON.`}
+          ]}]
+        })
+      });
+      const data = await resp.json();
+      const text = data.content?.[0]?.text||'[]';
+      const clean = text.replace(/```json|```/g,'').trim();
+      pdfT = JSON.parse(clean);
+      document.getElementById('pdf-pf').style.width='100%';
+      document.getElementById('pdf-status').textContent = `✅ ${pdfT.length} trades trouvés`;
+      // Show preview
+      const prev = document.getElementById('pdf-prev');
+      const rows = document.getElementById('pdf-rows');
+      document.getElementById('pdf-cnt').textContent = pdfT.length + ' trades';
+      rows.innerHTML = pdfT.slice(0,5).map(t=>`<div class="preview-row">${t.date} · ${t.sym} · ${t.side} · <span style="color:${t.pnl>=0?'var(--accent)':'var(--red)'}">${t.pnl>=0?'+':''}${parseFloat(t.pnl).toFixed(2)}$</span></div>`).join('');
+      if(pdfT.length>5) rows.innerHTML += `<div class="preview-row" style="color:var(--text3)">...et ${pdfT.length-5} autres</div>`;
+      prev.style.display='block';
+      document.getElementById('pdf-ok').style.display='';
+    } catch(err){
+      document.getElementById('pdf-status').textContent = '❌ Erreur: '+err.message;
+    }
+    document.getElementById('pdf-pg').style.display='none';
+  };
+  reader.readAsDataURL(file);
+}
+function doPdfImport(){
+  if(!pdfT.length) return;
+  const newTrades = pdfT.map(t=>({
+    id: Date.now()+Math.random(),
+    sym: t.sym||'PDF', side: t.side||'LONG',
+    entry: parseFloat(t.entry)||0, exit: parseFloat(t.exit)||0,
+    qty: parseFloat(t.qty)||1,
+    pnl: parseFloat(t.pnl)||0, pnlPct: 0,
+    date: t.date, time: '09:30',
+    strat: 'Import PDF', emotion: '', rating: 3,
+    tags: ['pdf'], notes: t.notes||''
+  }));
+  T.push(...newTrades); save(); renderAll(); closeImport();
+  toast(`✅ ${newTrades.length} trades importés depuis PDF !`);
+  if(currentUser){
+    const rows = newTrades.map(t=>({user_id:currentUser.id,sym:t.sym,side:t.side,entry:t.entry,exit:t.exit,qty:t.qty,pnl:t.pnl,pnl_pct:0,date:t.date,time:'09:30',strat:'Import PDF',emotion:'',rating:3,tags:['pdf'],notes:t.notes}));
+    db.from('trades').insert(rows);
+  }
+  pdfT=[];
+}
 //  CSV — Format réel Tradovate (onglet Orders)
 //  Headers: orderId,Account,Order ID,B/S,Contract,Product,
 //           Product Description,avgPrice,filledQty,Fill Time,
