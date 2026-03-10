@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const { createClient } = supabase;
+const db = createClient(
+  'https://vtmdiipgyioyrkjgpyqd.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0bWRpaXBneWlveXJramdweXFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMzg3MDksImV4cCI6MjA4ODcxNDcwOX0.omMvgx8ncIj5z3nmzDhkMS3fZ8L-PNO9owyFfFncaJc'
+);
+async function logout(){
+  await db.auth.signOut();
+  // Clear everything
+  localStorage.clear();
+  sessionStorage.clear();
+  // Redirect to app
+  window.location.href = 'trading-journal.html';
+}
+logout();
+</script>
+</body>
+</html>
