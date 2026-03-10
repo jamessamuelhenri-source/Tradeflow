@@ -218,7 +218,7 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
           <div id="user-plan-badge"><span class="plan-badge free">FREE</span></div>
         </div>
       </div>
-      <button onclick="doLogout()" style="width:100%;padding:7px;border-radius:8px;background:transparent;border:1px solid var(--border2);color:var(--text3);font-size:12px;cursor:pointer;">
+      <button id="logout-btn" style="width:100%;padding:7px;border-radius:8px;background:transparent;border:1px solid var(--border2);color:var(--text3);font-size:12px;cursor:pointer;">
         Déconnexion
       </button>
     </div>
@@ -1739,6 +1739,9 @@ function renderCal(){
 }
 
 renderAll();renderCal();initPropFirms();
+
+// Logout button
+document.getElementById('logout-btn').addEventListener('click', doLogout);
 </script>
 </body>
 </html>
