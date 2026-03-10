@@ -669,7 +669,7 @@ async function loadProfile(user){
   try {
     const { data } = await db.from('profiles').select('*').eq('id', user.id).single();
     currentProfile = data;
-    const isPro = data?.plan === 'pro' || (data?.trial_ends_at && new Date(data.trial_ends_at) > new Date());
+    const isPro = data?.plan === 'pro';
     document.getElementById('user-plan-badge').innerHTML =
       isPro ? '<span class="plan-badge pro">✦ PRO</span>' : '<span class="plan-badge free">FREE</span>';
     document.getElementById('plan-free-ui').style.display = isPro ? 'none' : '';
