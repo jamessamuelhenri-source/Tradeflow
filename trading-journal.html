@@ -640,18 +640,15 @@ async function doLogout(){
 // ══════════════════════════════════════════════════════════
 async function doSubscribe(){
   if(!currentUser){ toast('❌ Connectez-vous d\'abord'); return; }
-  toast('🔄 Redirection vers Stripe...');
-  // Stripe Checkout via direct link (no backend needed for basic checkout)
-  // On utilise le Payment Link Stripe — crée-le dans ton dashboard
-  // Pour l'instant on redirige vers la page de checkout Stripe
-  const { error } = await stripe.redirectToCheckout({
-    lineItems: [{ price: STRIPE_PRICE, quantity: 1 }],
-    mode: 'subscription',
-    successUrl: window.location.origin + '/Tradeflow/?subscribed=1',
-    cancelUrl:  window.location.origin + '/Tradeflow/',
-    customerEmail: currentUser.email,
+  // Stripe Payment Link — crée-le dans Stripe Dashboard → Payment Links
+  // Format: https://buy.stripe.com/test_XXXXX
+  // Pour l'instant on utilise le checkout direct avec l'email pré-rempli
+  const params = new URLSearchParams({
+    prefilled_email: currentUser.email,
+    client_reference_id: currentUser.id,
   });
-  if(error) toast('❌ '+error.message);
+  window.open(`https://buy.stripe.com/test_cNi3cwa101DKaCx86N7AI00?prefilled_email=${encodeURIComponent(currentUser.email)}&client_reference_id=${currentUser.id}`, '_blank');
+  toast('🔄 Ouverture du paiement Stripe...');
 }
 
 async function doManageBilling(){
@@ -719,7 +716,6 @@ db.auth.onAuthStateChange(async (event, session) => {
   if(session?.user){
     document.getElementById('auth-overlay').classList.add('hidden');
     await loadProfile(session.user);
-    // Check subscription success
     if(window.location.search.includes('subscribed=1')){
       toast('🎉 Bienvenue sur TradeFlow Pro !');
       await db.from('profiles').update({ plan:'pro' }).eq('id', session.user.id);
@@ -727,21 +723,19 @@ db.auth.onAuthStateChange(async (event, session) => {
     }
   } else {
     document.getElementById('auth-overlay').classList.remove('hidden');
-    // Check if came from signup redirect
-    if(window.location.hash.includes('access_token')){
-      // Email confirmed, auth state will update
-    }
-    // Check hash for auth redirect
-    if(window.location.hash.includes('signup')){
-      authTab('signup');
-    }
+    if(window.location.hash === '#signup') authTab('signup');
   }
 });
 
-// Also check URL hash for #signup
-if(window.location.hash === '#signup'){
-  authTab('signup');
-}
+// Also check existing session immediately on load
+db.auth.getSession().then(async ({ data: { session } }) => {
+  if(session?.user){
+    document.getElementById('auth-overlay').classList.add('hidden');
+    await loadProfile(session.user);
+  }
+});
+
+if(window.location.hash === '#signup') authTab('signup');
 
 // STATE
 let T=JSON.parse(localStorage.getItem('tf_trades')||'[]');
