@@ -612,8 +612,8 @@ footer {
     <a href="#testimonials">Avis</a>
   </div>
   <div class="nav-cta">
-    <a href="app.html" class="btn-ghost-sm">Connexion</a>
-    <a href="app.html#signup" class="btn-primary-sm">Essai gratuit</a>
+    <a href="trading-journal.html" class="btn-ghost-sm">Connexion</a>
+    <a href="trading-journal.html#signup" class="btn-primary-sm">Essai gratuit</a>
   </div>
 </nav>
 
@@ -630,10 +630,10 @@ footer {
       Import automatique, statistiques avancées, suivi prop firm.
     </p>
     <div class="hero-actions">
-      <a href="app.html#signup" class="btn-hero">
+      <a href="trading-journal.html#signup" class="btn-hero">
         Commencer gratuitement →
       </a>
-      <a href="app.html" class="btn-hero-ghost">
+      <a href="trading-journal.html" class="btn-hero-ghost">
         Voir la démo
       </a>
     </div>
@@ -859,7 +859,7 @@ footer {
         <li class="muted">Export PDF</li>
         <li class="muted">Historique illimité</li>
       </ul>
-      <a href="app.html#signup" class="btn-plan free">Commencer gratuit</a>
+      <a href="trading-journal.html#signup" class="btn-plan free">Commencer gratuit</a>
     </div>
 
     <!-- PRO -->
@@ -877,7 +877,7 @@ footer {
         <li>Statistiques avancées</li>
         <li>Support prioritaire</li>
       </ul>
-      <a href="app.html#signup" class="btn-plan pro">Essayer 14 jours gratuit →</a>
+      <a href="trading-journal.html#signup" class="btn-plan pro">Essayer 14 jours gratuit →</a>
     </div>
   </div>
 </section>
@@ -930,7 +930,7 @@ footer {
   <div class="cta-inner reveal">
     <div class="cta-title">Prêt à <em>passer au niveau</em><br>supérieur ?</div>
     <p class="cta-sub">Rejoins des milliers de traders qui utilisent TradeFlow pour analyser et améliorer leurs performances.</p>
-    <a href="app.html#signup" class="btn-hero">
+    <a href="trading-journal.html#signup" class="btn-hero">
       Commencer gratuitement — 14 jours d'essai →
     </a>
     <p class="hero-note" style="margin-top:16px">Aucune carte de crédit requise</p>
@@ -943,13 +943,13 @@ footer {
   <div class="footer-links">
     <a href="#features">Fonctionnalités</a>
     <a href="#pricing">Tarifs</a>
-    <a href="app.html">Application</a>
-    <a href="mailto:contact@tradeflow.app">Contact</a>
+    <a href="trading-journal.html">Application</a>
+    <a href="/cdn-cgi/l/email-protection#395a56574d585a4d794d4b585d5c5f55564e17584949">Contact</a>
   </div>
   <div class="footer-copy">© 2026 TradeFlow. Tous droits réservés.</div>
 </footer>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // Reveal on scroll
 const observer = new IntersectionObserver((entries) => {
   entries.forEach(e => {
@@ -985,11 +985,4 @@ const statsObserver = new IntersectionObserver((entries) => {
       const prefix = el.dataset.prefix || '';
       const suffix = el.dataset.suffix || '';
       animateCounter(el, target, prefix, suffix);
-      statsObserver.unobserve(el);
-    }
-  });
-}, { threshold: 0.5 });
-document.querySelectorAll('[data-target]').forEach(el => statsObserver.observe(el));
-</script>
-</body>
-</html>
+      statsObserver.unobserve(
