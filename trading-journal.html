@@ -218,7 +218,7 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
           <div id="user-plan-badge"><span class="plan-badge free">FREE</span></div>
         </div>
       </div>
-      <button onclick="doLogout()" style="width:100%;padding:7px;border-radius:8px;background:transparent;border:1px solid var(--border2);color:var(--text3);font-size:12px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text3)'">
+      <button onclick="doLogout()" style="width:100%;padding:7px;border-radius:8px;background:transparent;border:1px solid var(--border2);color:var(--text3);font-size:12px;cursor:pointer;">
         Déconnexion
       </button>
     </div>
@@ -627,8 +627,12 @@ async function doForgotPassword(){
 }
 
 async function doLogout(){
-  await db.auth.signOut();
-  window.location.reload();
+  try {
+    await db.auth.signOut();
+  } catch(e) {
+    console.log('signOut error:', e);
+  }
+  window.location.href = window.location.pathname;
 }
 
 // ══════════════════════════════════════════════════════════
