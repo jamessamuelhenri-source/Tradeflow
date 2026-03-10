@@ -628,10 +628,10 @@ async function doForgotPassword(){
 
 async function doLogout(){
   try {
-    await db.auth.signOut();
-  } catch(e) {
-    console.log('signOut error:', e);
-  }
+    await db.auth.signOut({ scope: 'local' });
+  } catch(e) {}
+  localStorage.clear();
+  sessionStorage.clear();
   window.location.href = window.location.pathname;
 }
 
