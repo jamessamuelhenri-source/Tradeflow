@@ -627,11 +627,12 @@ async function doForgotPassword(){
 }
 
 async function doLogout(){
-  try {
-    await db.auth.signOut({ scope: 'local' });
-  } catch(e) {}
-  localStorage.clear();
-  sessionStorage.clear();
+  try { await db.auth.signOut({ scope: 'local' }); } catch(e) {}
+  // Clear all Supabase keys from localStorage
+  Object.keys(localStorage).forEach(key => {
+    if(key.startsWith('sb-') || key.includes('supabase')) localStorage.removeItem(key);
+  });
+  localStorage.removeItem('tf_trades');
   window.location.href = window.location.pathname;
 }
 
