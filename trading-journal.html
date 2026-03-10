@@ -422,7 +422,7 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
 
       <div class="form-group">
         <label>Prop Firm</label>
-        <select id="q-firm" style="font-size:14px">
+        <select id="q-firm" style="font-size:14px" onchange="toggleCustomFirm('q')">
           <option value="">— Sélectionner —</option>
           <option>Apex Trader Funding</option>
           <option>TopStep</option>
@@ -435,6 +435,7 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
           <option>Compte personnel</option>
           <option>Autre</option>
         </select>
+        <input type="text" id="q-firm-custom" placeholder="Nom de votre prop firm..." style="display:none;margin-top:8px">
       </div>
 
       <div class="form-group">
@@ -464,7 +465,7 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
       <div class="form-group"><label>Prix de sortie</label><input type="number" id="f-exit" placeholder="0.00" step="0.01"></div>
       <div class="form-group"><label>Quantité</label><input type="number" id="f-qty" placeholder="1" min="0"></div>
       <div class="form-group"><label>P&L direct ($)</label><input type="number" id="f-pnl-override" placeholder="optionnel — calcul auto sinon" step="0.01"></div>
-      <div class="form-group"><label>Prop Firm</label><select id="f-firm"><option value="">— Sélectionner —</option><option>Apex Trader Funding</option><option>TopStep</option><option>FTMO</option><option>MyForexFunds</option><option>The Funded Trader</option><option>E8 Funding</option><option>Compte personnel</option><option>Autre</option></select></div>
+      <div class="form-group"><label>Prop Firm</label><select id="f-firm" onchange="toggleCustomFirm('f')"><option value="">— Sélectionner —</option><option>Apex Trader Funding</option><option>Take Profit Trader</option><option>Topstep</option><option>Bulenox</option><option>Earn2Trade</option><option>Leeloo Trading</option><option>TickTick Trader</option><option>TradeDay</option><option>Elite Trader Funding</option><option>FTMO</option><option>FundedNext</option><option>The5ers</option><option>MyForexFunds</option><option>True Forex Funds</option><option>Compte personnel</option><option>Autre</option></select><input type="text" id="f-firm-custom" placeholder="Nom de votre prop firm..." style="display:none;margin-top:8px"></div>
       <div class="form-group"><label>Stratégie</label><select id="f-strat"><option value="">— Sélectionner —</option><option>Breakout</option><option>Mean Reversion</option><option>Momentum</option><option>Gap & Go</option><option>Scalping</option><option>Swing</option><option>Autre</option></select></div>
       <div class="form-group"><label>Émotion</label><select id="f-emo"><option value="">— Sélectionner —</option><option>😊 Confiant</option><option>😐 Neutre</option><option>😰 Nerveux</option><option>😤 Impatient</option></select></div>
       <div class="form-group full"><label>Notes</label><textarea id="f-notes" placeholder="Analyse, leçons..."></textarea></div>
@@ -848,7 +849,7 @@ function saveTrade(){
   const pct=en?((ex-en)/en)*100*dir:0;
   const trade={id:Date.now(),sym,side,entry:en,exit:ex,qty,pnl,pnlPct:pct,date,
     time:document.getElementById('f-time').value,
-    strat:document.getElementById('f-strat').value,
+    strat:getFirm('f') + (document.getElementById('f-strat').value ? ' · '+document.getElementById('f-strat').value : ''),
     emotion:document.getElementById('f-emo').value,
     rating:3,tags:[],notes:document.getElementById('f-notes').value
   };
@@ -895,6 +896,17 @@ function selEnv(e){
 }
 
 // ── QUICK MODAL (Gain du jour) ──────────────────────────
+function toggleCustomFirm(prefix){
+  const sel = document.getElementById(prefix+'-firm');
+  const custom = document.getElementById(prefix+'-firm-custom');
+  custom.style.display = sel.value === 'Autre' ? '' : 'none';
+  if(sel.value === 'Autre') custom.focus();
+}
+function getFirm(prefix){
+  const sel = document.getElementById(prefix+'-firm');
+  const custom = document.getElementById(prefix+'-firm-custom');
+  return sel.value === 'Autre' ? (custom.value.trim()||'Autre') : (sel.value||'Compte personnel');
+}
 let qMood = 'neutral';
 function openQuick(){
   document.getElementById('quick-modal').classList.add('open');
@@ -915,7 +927,7 @@ function qSetMood(m){
 function saveQuick(){
   const date = document.getElementById('q-date').value;
   const pnl  = parseFloat(document.getElementById('q-pnl').value);
-  const firm = document.getElementById('q-firm').value || 'Compte personnel';
+  const firm = getFirm('q');
   if(!date || isNaN(pnl)){ toast('❌ Montant et date requis'); return; }
   const trade = {
     id: Date.now(), sym: firm, side: pnl>=0?'LONG':'SHORT',
