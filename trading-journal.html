@@ -358,22 +358,6 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
       </div>
       <!-- Tooltip -->
       <div id="cal-tooltip" style="position:fixed;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:12px 16px;font-size:12px;pointer-events:none;display:none;z-index:9999;min-width:180px;box-shadow:0 8px 24px rgba(0,0,0,.4)"></div>
-
-      <!-- Calendrier Économique -->
-      <div class="chart-card" style="margin-top:20px;padding:0;overflow:hidden">
-        <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
-          <span style="font-size:18px">📰</span>
-          <div>
-            <div style="font-weight:700;font-size:15px">Calendrier Économique</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:2px">Annonces macro en temps réel · Investing.com</div>
-          </div>
-        </div>
-        <div style="padding:0;background:#1a1e2e;border-radius:0 0 14px 14px;overflow:hidden">
-          <iframe src="https://sslecal2.investing.com?columns=exc_flags,exc_currency,exc_importance,exc_actual,exc_forecast,exc_previous&features=datepicker,timezone&countries=5,4,72,37&calType=week&timeZone=55&lang=5"
-            width="100%" height="460" frameborder="0" allowtransparency="true" marginwidth="0" marginheight="0"
-            style="display:block;border:none;background:#1a1e2e"></iframe>
-        </div>
-      </div>
     </div>
 
     <!-- REPORTS -->
@@ -581,6 +565,57 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:24px;text-align:center">
             <div id="conv-result" style="font-size:32px;font-weight:800;color:var(--accent);font-family:var(--mono);min-height:40px">—</div>
             <div id="conv-rate" style="font-size:12px;color:var(--text3);margin-top:8px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Calendrier Économique -->
+      <div class="chart-card" style="margin-top:20px;padding:0;overflow:hidden">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+          <span style="font-size:18px">📰</span>
+          <div>
+            <div style="font-weight:700;font-size:15px">Calendrier Économique</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">Annonces macro en temps réel · Investing.com</div>
+          </div>
+        </div>
+        <!-- Filtres date -->
+        <div style="display:flex;gap:8px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap">
+          <div style="display:flex;gap:5px">
+            <button class="btn btn-ghost eco-date active" onclick="setEcoDate('today',this)" style="font-size:12px;padding:5px 12px">Aujourd'hui</button>
+            <button class="btn btn-ghost eco-date" onclick="setEcoDate('week',this)" style="font-size:12px;padding:5px 12px">Cette semaine</button>
+            <button class="btn btn-ghost eco-date" onclick="setEcoDate('next',this)" style="font-size:12px;padding:5px 12px">Semaine prochaine</button>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:5px">
+            <button class="btn eco-imp active" onclick="toggleEcoImp('high',this)" style="font-size:11px;padding:4px 10px;background:rgba(255,77,109,.12);color:#ff4d6d;border:1px solid rgba(255,77,109,.3);border-radius:6px">🔴 High</button>
+            <button class="btn eco-imp active" onclick="toggleEcoImp('medium',this)" style="font-size:11px;padding:4px 10px;background:rgba(245,158,11,.1);color:#f59e0b;border:1px solid rgba(245,158,11,.3);border-radius:6px">🟡 Med</button>
+            <button class="btn eco-imp active" onclick="toggleEcoImp('low',this)" style="font-size:11px;padding:4px 10px;background:var(--bg3);color:var(--text3);border:1px solid var(--border);border-radius:6px">⚪ Low</button>
+          </div>
+        </div>
+        <!-- Filtres devise -->
+        <div style="display:flex;gap:5px;padding:8px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;align-items:center">
+          <span style="font-size:11px;color:var(--text3);margin-right:4px;line-height:26px">Devises :</span>
+          <button class="btn btn-ghost eco-cur active" onclick="toggleEcoCur('USD',this)" style="font-size:11px;padding:3px 10px">🇺🇸 USD</button>
+          <button class="btn btn-ghost eco-cur active" onclick="toggleEcoCur('EUR',this)" style="font-size:11px;padding:3px 10px">🇪🇺 EUR</button>
+          <button class="btn btn-ghost eco-cur active" onclick="toggleEcoCur('GBP',this)" style="font-size:11px;padding:3px 10px">🇬🇧 GBP</button>
+          <button class="btn btn-ghost eco-cur active" onclick="toggleEcoCur('JPY',this)" style="font-size:11px;padding:3px 10px">🇯🇵 JPY</button>
+          <button class="btn btn-ghost eco-cur active" onclick="toggleEcoCur('CAD',this)" style="font-size:11px;padding:3px 10px">🇨🇦 CAD</button>
+          <button class="btn btn-ghost eco-cur active" onclick="toggleEcoCur('AUD',this)" style="font-size:11px;padding:3px 10px">🇦🇺 AUD</button>
+          <button class="btn btn-ghost eco-cur active" onclick="toggleEcoCur('CHF',this)" style="font-size:11px;padding:3px 10px">🇨🇭 CHF</button>
+          <button class="btn btn-ghost eco-cur active" onclick="toggleEcoCur('CNY',this)" style="font-size:11px;padding:3px 10px">🇨🇳 CNY</button>
+        </div>
+        <!-- Header colonnes -->
+        <div style="display:grid;grid-template-columns:70px 60px 1fr 70px 80px 80px;gap:0;padding:8px 16px;background:var(--bg3);border-bottom:1px solid var(--border)">
+          <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Heure</div>
+          <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Devise</div>
+          <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Événement</div>
+          <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;text-align:center">Impact</div>
+          <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;text-align:right">Précédent</div>
+          <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;text-align:right">Actuel</div>
+        </div>
+        <!-- Données -->
+        <div id="eco-body" style="max-height:480px;overflow-y:auto">
+          <div id="eco-loading" style="display:flex;align-items:center;justify-content:center;height:160px;color:var(--text3);font-size:13px;gap:8px">
+            <span>⏳</span> Chargement des annonces...
           </div>
         </div>
       </div>
@@ -1218,6 +1253,7 @@ function showPage(id,el){
   if(id==='analytics')renderAna();
   if(id==='calendar')renderCal();
   if(id==='reports')renderReports();
+  if(id==='converter')setTimeout(loadEcoCalendar,80);
 }
 function setTab(el){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');}
 
@@ -2993,6 +3029,146 @@ async function changePassword(){
     toast('✅ Mot de passe mis à jour !');
   } catch(e) { toast('❌ Erreur: ' + e.message); }
 }
+
+// ── CALENDRIER ÉCONOMIQUE FINNHUB ──────────────────────────────────────
+const FINNHUB_KEY = 'd6panjhr01qk3chjjfl0d6panjhr01qk3chjjflg';
+let ecoData = [];
+let ecoDateMode = 'today';
+let ecoImpFilters = new Set(['high','medium','low']);
+let ecoCurFilters = new Set(['USD','EUR','GBP','JPY','CAD','AUD','CHF','CNY']);
+
+function getEcoDates(mode) {
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  if(mode === 'today') {
+    const s = fmt(now);
+    return {from: s, to: s};
+  }
+  if(mode === 'week') {
+    const day = now.getDay();
+    const mon = new Date(now); mon.setDate(now.getDate() - (day===0?6:day-1));
+    const fri = new Date(mon); fri.setDate(mon.getDate()+6);
+    return {from: fmt(mon), to: fmt(fri)};
+  }
+  if(mode === 'next') {
+    const day = now.getDay();
+    const nextMon = new Date(now); nextMon.setDate(now.getDate() + (day===0?1:8-day));
+    const nextSun = new Date(nextMon); nextSun.setDate(nextMon.getDate()+6);
+    return {from: fmt(nextMon), to: fmt(nextSun)};
+  }
+}
+
+async function loadEcoCalendar() {
+  const body = document.getElementById('eco-body');
+  if(!body) return;
+  body.innerHTML = '<div id="eco-loading" style="display:flex;align-items:center;justify-content:center;height:160px;color:var(--text3);font-size:13px;gap:8px"><span>⏳</span> Chargement...</div>';
+  const {from, to} = getEcoDates(ecoDateMode);
+  try {
+    const url = `https://finnhub.io/api/v1/calendar/economic?from=${from}&to=${to}&token=${FINNHUB_KEY}`;
+    const res = await fetch(url);
+    const json = await res.json();
+    ecoData = (json.economicCalendar || []).sort((a,b) => new Date(a.time) - new Date(b.time));
+    renderEcoCalendar();
+  } catch(e) {
+    body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">❌ Erreur de chargement</div>';
+  }
+}
+
+function renderEcoCalendar() {
+  const body = document.getElementById('eco-body');
+  if(!body) return;
+
+  const filtered = ecoData.filter(ev => {
+    const imp = (ev.impact||'').toLowerCase();
+    const cur = (ev.unit||ev.currency||'').toUpperCase();
+    const impOk = ecoImpFilters.has(imp) || ecoImpFilters.has(imp==='high'?'high':imp==='medium'?'medium':'low');
+    const curOk = ecoCurFilters.has(cur);
+    return impOk && curOk;
+  });
+
+  if(!filtered.length) {
+    body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3);font-size:13px">Aucun événement pour les filtres sélectionnés</div>';
+    return;
+  }
+
+  let html = '';
+  let lastDate = '';
+
+  filtered.forEach(ev => {
+    const dt = new Date(ev.time);
+    const dateStr = dt.toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'});
+    const timeStr = dt.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+    const imp = (ev.impact||'low').toLowerCase();
+    const cur = (ev.unit||ev.currency||'').toUpperCase();
+    const actual = ev.actual !== undefined && ev.actual !== null && ev.actual !== '' ? ev.actual : '—';
+    const prev   = ev.previous !== undefined && ev.previous !== null && ev.previous !== '' ? ev.previous : '—';
+
+    // Impact style
+    let impColor, impBg, impLabel;
+    if(imp === 'high')        { impColor='#ff4d6d'; impBg='rgba(255,77,109,.15)'; impLabel='🔴 High'; }
+    else if(imp === 'medium') { impColor='#f59e0b'; impBg='rgba(245,158,11,.12)'; impLabel='🟡 Med'; }
+    else                      { impColor='var(--text3)'; impBg='var(--bg3)'; impLabel='⚪ Low'; }
+
+    // Actual color
+    let actualColor = 'var(--text)';
+    if(actual !== '—' && prev !== '—') {
+      try {
+        const a = parseFloat(String(actual).replace(/[%,]/g,''));
+        const p = parseFloat(String(prev).replace(/[%,]/g,''));
+        if(!isNaN(a)&&!isNaN(p)) actualColor = a >= p ? 'var(--accent)' : '#ff4d6d';
+      } catch(e){}
+    }
+
+    // Date separator
+    if(dateStr !== lastDate) {
+      lastDate = dateStr;
+      html += `<div style="padding:8px 16px;background:var(--bg2);border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;position:sticky;top:0">${dateStr}</div>`;
+    }
+
+    html += `<div style="display:grid;grid-template-columns:70px 60px 1fr 70px 80px 80px;gap:0;padding:10px 16px;border-bottom:1px solid var(--border);align-items:center;transition:background .15s" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">
+      <div style="font-size:12px;color:var(--text2);font-family:var(--mono)">${timeStr}</div>
+      <div><span style="font-size:11px;font-weight:700;background:var(--bg3);padding:2px 7px;border-radius:4px;border:1px solid var(--border);color:var(--text)">${cur}</span></div>
+      <div style="font-size:13px;color:var(--text);padding-right:12px">${ev.event||'—'}</div>
+      <div style="text-align:center"><span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:${impBg};color:${impColor}">${impLabel}</span></div>
+      <div style="font-size:12px;color:var(--text3);text-align:right;font-family:var(--mono)">${prev}</div>
+      <div style="font-size:12px;font-weight:700;color:${actualColor};text-align:right;font-family:var(--mono)">${actual}</div>
+    </div>`;
+  });
+
+  body.innerHTML = html;
+}
+
+function setEcoDate(mode, btn) {
+  ecoDateMode = mode;
+  document.querySelectorAll('.eco-date').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadEcoCalendar();
+}
+
+function toggleEcoImp(level, btn) {
+  if(ecoImpFilters.has(level)) { ecoImpFilters.delete(level); btn.classList.remove('active'); btn.style.opacity='.4'; }
+  else { ecoImpFilters.add(level); btn.classList.add('active'); btn.style.opacity='1'; }
+  renderEcoCalendar();
+}
+
+function toggleEcoCur(cur, btn) {
+  if(ecoCurFilters.has(cur)) { ecoCurFilters.delete(cur); btn.classList.remove('active'); btn.style.opacity='.4'; }
+  else { ecoCurFilters.add(cur); btn.classList.add('active'); btn.style.opacity='1'; }
+  renderEcoCalendar();
+}
+
+// Auto-load quand on ouvre la page Outils
+const _origShowPage = typeof showPage === 'function' ? showPage : null;
+document.addEventListener('DOMContentLoaded', () => {
+  const nav = document.querySelectorAll('.nav-item');
+  nav.forEach(n => {
+    if(n.getAttribute('onclick') && n.getAttribute('onclick').includes('converter')) {
+      n.addEventListener('click', () => setTimeout(loadEcoCalendar, 100));
+    }
+  });
+});
+// ── FIN CALENDRIER ÉCONOMIQUE ──────────────────────────────────────
 </script>
 </body>
 </html>
