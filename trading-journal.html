@@ -363,24 +363,25 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
           <div id="plan-free-ui">
             <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:16px;margin-bottom:16px">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-                <span style="font-weight:700">Plan Gratuit</span>
-                <span class="plan-badge free">FREE</span>
+                <span style="font-weight:700">Essai Gratuit</span>
+                <span class="plan-badge free">14 JOURS</span>
               </div>
               <div style="font-size:12px;color:var(--text3);line-height:1.7">
-                ✓ Import CSV · ✓ Dashboard<br>
-                ✗ Sync Tradovate auto<br>
-                ✗ Export PDF · ✗ Trades illimités
+                ✓ Accès complet pendant 14 jours<br>
+                ✓ Toutes les fonctionnalités incluses<br>
+                ✗ Accès bloqué après la période d'essai
               </div>
+              <div id="trial-days-left" style="margin-top:10px;font-size:12px;color:var(--accent);font-weight:600"></div>
             </div>
             <div style="background:linear-gradient(135deg,rgba(0,229,160,0.08),rgba(77,159,255,0.05));border:1px solid rgba(0,229,160,0.2);border-radius:10px;padding:16px;margin-bottom:16px">
               <div style="font-size:13px;font-weight:700;margin-bottom:4px">TradeFlow Pro — $9.99/mois</div>
               <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.7">
-                ✅ Sync Tradovate automatique<br>
+                ✅ Accès illimité sans interruption<br>
                 ✅ Trades illimités<br>
                 ✅ Export PDF · ✅ Toutes les stats
               </div>
               <button class="btn btn-primary" style="width:100%" onclick="doSubscribe()">
-                ⚡ Passer à Pro — 14 jours gratuits
+                ⚡ Passer à Pro — Continuer sans limite
               </button>
             </div>
           </div>
@@ -391,8 +392,8 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
                 <span class="plan-badge pro">✦ PRO</span>
               </div>
               <div style="font-size:12px;color:var(--text3);line-height:1.7">
-                ✅ Toutes les fonctionnalités actives<br>
-                ✅ Sync Tradovate · ✅ Export PDF
+                ✅ Accès illimité · ✅ Trades illimités<br>
+                ✅ Export PDF · ✅ Toutes les stats
               </div>
             </div>
             <button class="btn btn-ghost" style="width:100%;color:var(--red);border-color:var(--red)" onclick="doManageBilling()">
@@ -709,6 +710,24 @@ async function loadProfile(user){
       isPro ? '<span class="plan-badge pro">✦ PRO</span>' : '<span class="plan-badge free">FREE</span>';
     document.getElementById('plan-free-ui').style.display = isPro ? 'none' : '';
     document.getElementById('plan-pro-ui').style.display  = isPro ? '' : 'none';
+
+    // Trial days remaining
+    if(!isPro){
+      const created = new Date(user.created_at);
+      const trialEnd = new Date(created.getTime() + 14*24*60*60*1000);
+      const now = new Date();
+      const daysLeft = Math.ceil((trialEnd - now) / (1000*60*60*24));
+      const trialEl = document.getElementById('trial-days-left');
+      if(trialEl){
+        if(daysLeft > 0){
+          trialEl.textContent = `⏳ Il vous reste ${daysLeft} jour${daysLeft>1?'s':''} d'essai gratuit`;
+          trialEl.style.color = daysLeft <= 3 ? 'var(--red)' : 'var(--accent)';
+        } else {
+          trialEl.textContent = '⚠️ Votre essai gratuit est terminé';
+          trialEl.style.color = 'var(--red)';
+        }
+      }
+    }
   } catch(e) {
     console.log('Profile load error (non-fatal):', e);
   }
