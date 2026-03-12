@@ -1754,6 +1754,9 @@ function parseDate(s){
 function parseTime(s){if(!s)return'09:30';const m=s.match(/(\d{1,2}):(\d{2})/);return m?`${m[1].padStart(2,'0')}:${m[2]}`:'09:30';}
 
 // ── CURRENCY SYSTEM ─────────────────────────────────────
+// FX_RATES stocke: combien de cette devise = 1 USD
+// ex: { USD:1, EUR:0.92, GBP:0.77, MUR:46.5 }
+// = 1 USD vaut 0.92 EUR, 0.77 GBP, 46.5 MUR
 var FX_RATES = { USD: 1, EUR: 1, GBP: 1, CAD: 1, AUD: 1, MUR: 1 };
 var DISPLAY_CURRENCY = 'USD';
 var DISPLAY_SYMBOL = '$';
@@ -1768,38 +1771,41 @@ function loadDisplayCurrency(){
 loadDisplayCurrency();
 
 function getTradeCurrency(trade){
-  // Lire depuis pnlCurrency ou depuis notes [CUR:XXX]
   if(trade && trade.pnlCurrency) return trade.pnlCurrency;
   if(trade && trade.notes){
     const m = trade.notes.match(/\[CUR:(\w+)\]/);
     if(m) return m[1];
   }
-  return 'USD'; // défaut
+  return 'USD';
 }
 
 function convertToDisplay(amount, fromCurrency){
+  // FX_RATES[X] = combien de X pour 1 USD
+  // Pour convertir X → Y :  amount / FX_RATES[X] * FX_RATES[Y]
   if(!fromCurrency || fromCurrency === DISPLAY_CURRENCY) return amount;
-  const fromRate = FX_RATES[fromCurrency] || 1;
-  const toRate   = FX_RATES[DISPLAY_CURRENCY] || 1;
-  return amount * (toRate / fromRate);
+  const fromRate = FX_RATES[fromCurrency] || 1; // X par USD
+  const toRate   = FX_RATES[DISPLAY_CURRENCY] || 1; // Y par USD
+  return amount / fromRate * toRate;
+  // ex: 100 EUR → USD : 100 / 0.92 * 1 = 108.7 ✅
+  // ex: 100 USD → EUR : 100 / 1 * 0.92 = 92 ✅
+  // ex: 100 EUR → MUR : 100 / 0.92 * 46.5 = 5054 ✅
 }
 
 function fmtTrade(trade){
-  // Affiche le P&L d'un trade converti dans la devise d'affichage
   const cur = getTradeCurrency(trade);
   const val = convertToDisplay(trade.pnl, cur);
   return(val>=0?'+':'-')+DISPLAY_SYMBOL+Math.abs(val).toFixed(2);
 }
 
 function fmt(v, fromCurrency){
-  const val = convertToDisplay(v, fromCurrency || DISPLAY_CURRENCY);
+  const val = fromCurrency ? convertToDisplay(v, fromCurrency) : v;
   return(val>=0?'+':'-')+DISPLAY_SYMBOL+Math.abs(val).toFixed(2);
 }
 
 async function loadFXRates(){
   try {
-    var res = await fetch('https://api.frankfurter.app/latest?from=USD&to=EUR,GBP,CAD,AUD,MUR');
-    var data = await res.json();
+    const res = await fetch('https://api.frankfurter.app/latest?from=USD&to=EUR,GBP,CAD,AUD,MUR,CAD,CHF,JPY,CNY,HKD,SGD,NZD,MXN,BRL,INR,KRW,NOK,SEK,DKK,ZAR,AED,TRY,PLN');
+    const data = await res.json();
     FX_RATES = { USD: 1, ...data.rates };
     renderAll();
   } catch(e) { console.log('FX rates unavailable'); }
