@@ -1752,10 +1752,41 @@ function parseDate(s){
   return null;
 }
 function parseTime(s){if(!s)return'09:30';const m=s.match(/(\d{1,2}):(\d{2})/);return m?`${m[1].padStart(2,'0')}:${m[2]}`:'09:30';}
-function fmt(v, fromCurrency){
-  const converted = fromCurrency ? convertToDisplay(v, fromCurrency) : v;
-  return(converted>=0?'+':'-')+DISPLAY_SYMBOL+Math.abs(converted).toFixed(2);
+
+// ── CURRENCY SYSTEM ─────────────────────────────────────
+var FX_RATES = { USD: 1, EUR: 1, GBP: 1, CAD: 1, AUD: 1, MUR: 1 };
+var DISPLAY_CURRENCY = 'USD';
+var DISPLAY_SYMBOL = '$';
+
+function loadDisplayCurrency(){
+  var saved = localStorage.getItem('tf_currency_full') || '';
+  if(saved){
+    var match = saved.match(/^(\w+)\s+([^\s—]+)/);
+    if(match){ DISPLAY_CURRENCY = match[1]; DISPLAY_SYMBOL = match[2]; }
+  }
 }
+loadDisplayCurrency();
+
+function convertToDisplay(amount, fromCurrency){
+  var fromRate = FX_RATES[fromCurrency] || 1;
+  var toRate = FX_RATES[DISPLAY_CURRENCY] || 1;
+  return amount * (toRate / fromRate);
+}
+
+function fmt(v, fromCurrency){
+  var val = fromCurrency ? convertToDisplay(v, fromCurrency) : v;
+  return(val>=0?'+':'-')+DISPLAY_SYMBOL+Math.abs(val).toFixed(2);
+}
+
+async function loadFXRates(){
+  try {
+    var res = await fetch('https://api.frankfurter.app/latest?from=USD&to=EUR,GBP,CAD,AUD,MUR');
+    var data = await res.json();
+    FX_RATES = { USD: 1, ...data.rates };
+    renderAll();
+  } catch(e) { console.log('FX rates unavailable'); }
+}
+// ────────────────────────────────────────────────────────
 function toast(m){const t=document.getElementById('toast-el');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
 
 // RENDER
@@ -1990,71 +2021,8 @@ function showCalTip(e, el){
 }
 function hideCalTip(){ document.getElementById('cal-tooltip').style.display='none'; }
 
-renderAll();renderCal();initPropFirms();
+renderAll();renderCal();initPropFirms();loadFXRates();
 
-// ── CURRENCY CONVERSION ────────────────────────────────
-let FX_RATES = { USD: 1, EUR: 1, GBP: 1, CAD: 1, AUD: 1, MUR: 1 };
-let DISPLAY_CURRENCY = 'USD';
-let DISPLAY_SYMBOL = '$';
-
-async function loadFXRates(){
-  try {
-    const res = await fetch('https://api.frankfurter.app/latest?from=USD&to=EUR,GBP,CAD,AUD,MUR');
-    const data = await res.json();
-    FX_RATES = { USD: 1, ...data.rates };
-    renderAll();
-  } catch(e) { console.log('FX rates unavailable, using 1:1'); }
-}
-
-function convertToDisplay(amount, fromCurrency){
-  const fromRate = FX_RATES[fromCurrency] || 1;
-  const toRate = FX_RATES[DISPLAY_CURRENCY] || 1;
-  return amount * (toRate / fromRate);
-}
-
-function loadDisplayCurrency(){
-  const saved = localStorage.getItem('tf_currency_full') || 'USD $ — Dollar américain';
-  const match = saved.match(/^(\w+)\s+([^\s—]+)/);
-  if(match){
-    DISPLAY_CURRENCY = match[1];
-    DISPLAY_SYMBOL = match[2];
-  }
-}
-
-loadDisplayCurrency();
-loadFXRates();
-
-// ── CURRENCY CONVERSION ────────────────────────────────
-let fxRates = {}; // cache des taux
-let fxBase = 'USD'; // devise de base du cache
-
-async function getFxRate(from, to){
-  if(from === to) return 1;
-  const key = from + '_' + to;
-  if(fxRates[key]) return fxRates[key];
-  try {
-    const r = await fetch(`https://api.frankfurter.app/latest?from=${from}&to=${to}`);
-    const d = await r.json();
-    fxRates[key] = d.rates[to];
-    return d.rates[to];
-  } catch(e) {
-    console.log('FX rate fetch error:', e);
-    return 1; // fallback: pas de conversion
-  }
-}
-
-function getDisplayCurrency(){
-  const full = localStorage.getItem('tf_currency_full') || 'USD $ — Dollar américain';
-  const match = full.match(/^(\w+)/);
-  return match ? match[1] : 'USD';
-}
-
-async function convertToDisplay(amount, fromCurrency){
-  const displayCurrency = getDisplayCurrency();
-  if(fromCurrency === displayCurrency) return amount;
-  const rate = await getFxRate(fromCurrency, displayCurrency);
-  return amount * rate;
-}
 
 // Logout button
 document.getElementById('logout-btn').addEventListener('click', doLogout);
