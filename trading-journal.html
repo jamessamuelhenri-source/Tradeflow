@@ -6,6 +6,8 @@
 <title>TradeFlow — Trading Journal</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
 :root{--bg:#0a0c10;--bg2:#0f1117;--bg3:#151820;--card:#12151e;--card2:#181c27;--border:#1e2433;--border2:#252d3d;--accent:#00e5a0;--accent2:#00b87d;--accent-dim:rgba(0,229,160,0.1);--red:#ff4d6d;--blue:#4d9fff;--blue-dim:rgba(77,159,255,0.12);--yellow:#f7c948;--purple:#a78bfa;--text:#e8eaf0;--text2:#8b92a8;--text3:#535870;--mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;--display:'Syne',sans-serif;}
 *{margin:0;padding:0;box-sizing:border-box;}body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden;}
@@ -328,16 +330,19 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
     <div id="page-reports" class="page">
 
       <!-- Filtres date -->
-      <div style="display:flex;gap:10px;align-items:center;margin-bottom:18px;flex-wrap:wrap">
-        <div style="display:flex;gap:6px">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:18px;flex-wrap:wrap;justify-content:space-between">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
           <button class="btn btn-ghost rp-filter active" onclick="setReportFilter('today',this)">Aujourd'hui</button>
           <button class="btn btn-ghost rp-filter" onclick="setReportFilter('week',this)">Semaine</button>
           <button class="btn btn-ghost rp-filter" onclick="setReportFilter('month',this)">Mois</button>
           <button class="btn btn-ghost rp-filter" onclick="setReportFilter('all',this)">Tout</button>
+          <input type="date" id="rp-from" onchange="setReportFilter('custom',null)" style="padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px">
+          <span style="color:var(--text3);font-size:12px">→</span>
+          <input type="date" id="rp-to" onchange="setReportFilter('custom',null)" style="padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px">
         </div>
-        <input type="date" id="rp-from" onchange="setReportFilter('custom',null)" style="padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px">
-        <span style="color:var(--text3);font-size:12px">→</span>
-        <input type="date" id="rp-to" onchange="setReportFilter('custom',null)" style="padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px">
+        <button class="btn btn-primary" onclick="exportReportPDF()" style="gap:6px">
+          📄 Exporter PDF
+        </button>
       </div>
 
       <!-- Ligne stats ALL TRADES / PROFIT / LOSING -->
@@ -2285,6 +2290,127 @@ function renderReports(){
   }
 }
 // ──────────────────────────────────────────────────────
+
+// ── EXPORT PDF RAPPORT ────────────────────────────────
+function exportReportPDF(){
+  const { jsPDF } = window.jspdf;
+  if(!jsPDF){ toast('❌ jsPDF non chargé'); return; }
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  const trades = getReportTrades();
+  const wins   = trades.filter(t=>t.pnl>0);
+  const losses = trades.filter(t=>t.pnl<=0);
+  const gross  = trades.reduce((s,t)=>s+t.pnl,0);
+  const totalWin  = wins.reduce((s,t)=>s+t.pnl,0);
+  const totalLoss = losses.reduce((s,t)=>s+t.pnl,0);
+  const wr = trades.length ? (wins.length/trades.length*100).toFixed(1) : '0';
+  const avgWin  = wins.length   ? totalWin/wins.length   : 0;
+  const avgLoss = losses.length ? totalLoss/losses.length : 0;
+  const exp = trades.length ? (wins.length/trades.length)*avgWin + (losses.length/trades.length)*avgLoss : 0;
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('fr-FR');
+
+  // ── Fond sombre ──
+  doc.setFillColor(8,10,15);
+  doc.rect(0,0,210,297,'F');
+
+  // ── Header ──
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(22);
+  doc.setTextColor(0,229,160);
+  doc.text('TradeFlow', 14, 18);
+  doc.setFontSize(11);
+  doc.setTextColor(180,180,180);
+  doc.text('Rapport de trading', 60, 18);
+  doc.setFontSize(9);
+  doc.setTextColor(120,120,120);
+  doc.text(`Généré le ${dateStr}`, 14, 25);
+  const filterNames = {today:"Aujourd'hui",week:'Semaine',month:'Mois',all:'Tout',custom:'Personnalisé'};
+  doc.text(`Période : ${filterNames[rpFilter]||'Tout'}`, 140, 25);
+  doc.setDrawColor(0,229,160);
+  doc.setLineWidth(0.5);
+  doc.line(14, 29, 196, 29);
+
+  // ── Stats cards (3x3) ──
+  let y = 36;
+  const cardW=54, cardH=24, gap=5;
+  const cards = [
+    { label:'P&L Net',         value:fmt(gross),         color:gross>=0?[0,229,160]:[255,77,109] },
+    { label:'Trades',          value:String(trades.length), color:[255,255,255] },
+    { label:'Win Rate',        value:wr+'%',              color:[0,229,160] },
+    { label:'Total Gains',     value:fmt(totalWin),       color:[0,229,160] },
+    { label:'Total Pertes',    value:fmt(totalLoss),      color:[255,77,109] },
+    { label:'Expectancy',      value:fmt(exp),            color:exp>=0?[0,229,160]:[255,77,109] },
+    { label:'Avg Gain',        value:fmt(avgWin),         color:[0,229,160] },
+    { label:'Avg Perte',       value:fmt(avgLoss),        color:[255,77,109] },
+    { label:'Meilleur Trade',  value:fmt(wins.length?Math.max(...wins.map(t=>t.pnl)):0), color:[0,229,160] },
+  ];
+  cards.forEach((c,i)=>{
+    const col=i%3, row=Math.floor(i/3);
+    const cx=14+col*(cardW+gap), cy=y+row*(cardH+4);
+    doc.setFillColor(18,22,30);
+    doc.roundedRect(cx,cy,cardW,cardH,2,2,'F');
+    doc.setDrawColor(40,50,65);
+    doc.roundedRect(cx,cy,cardW,cardH,2,2,'S');
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(7);
+    doc.setTextColor(100,100,100);
+    doc.text(c.label.toUpperCase(),cx+3,cy+7);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(11);
+    doc.setTextColor(...c.color);
+    doc.text(String(c.value),cx+3,cy+17);
+  });
+
+  y += 3*(cardH+4)+8;
+
+  // ── Titre tableau ──
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(9);
+  doc.setTextColor(0,229,160);
+  doc.text('DÉTAIL DES TRADES', 14, y);
+  y += 4;
+
+  // ── Tableau autoTable ──
+  const sorted = [...trades].sort((a,b)=>b.date.localeCompare(a.date));
+  const rows = sorted.map(t=>([
+    t.sym||'—', t.date, t.time||'—', t.side||'—',
+    String(t.qty||1),
+    t.entry?'$'+t.entry.toFixed(2):'—',
+    t.exit ?'$'+t.exit.toFixed(2) :'—',
+    fmtTrade(t)
+  ]));
+
+  doc.autoTable({
+    startY: y,
+    head:[['Symbole','Date','Heure','Side','Qté','Entrée','Sortie','P&L']],
+    body: rows,
+    theme:'grid',
+    styles:{ font:'helvetica', fontSize:8, cellPadding:2.5, fillColor:[18,22,30], textColor:[200,200,200], lineColor:[40,50,65], lineWidth:0.3 },
+    headStyles:{ fillColor:[25,32,45], textColor:[0,229,160], fontStyle:'bold', fontSize:8 },
+    columnStyles:{ 7:{ halign:'right' } },
+    didParseCell:(data)=>{
+      if(data.section==='body' && data.column.index===7){
+        data.cell.styles.textColor = data.cell.raw.startsWith('+') ? [0,229,160] : [255,77,109];
+        data.cell.styles.fontStyle = 'bold';
+      }
+    },
+    margin:{ left:14, right:14 }
+  });
+
+  // ── Footer ──
+  const pages = doc.internal.getNumberOfPages();
+  for(let i=1;i<=pages;i++){
+    doc.setPage(i);
+    doc.setFontSize(7);
+    doc.setTextColor(70,70,70);
+    doc.text(`TradeFlow — Rapport confidentiel — Page ${i}/${pages}`, 14, 292);
+    doc.text(dateStr, 196, 292,{align:'right'});
+  }
+
+  doc.save(`TradeFlow_Rapport_${dateStr.replace(/\//g,'-')}.pdf`);
+  toast('✅ PDF exporté !');
+}
+// ─────────────────────────────────────────────────────
 
 // ── CONVERTISSEUR MANUEL ───────────────────────────────
 let convDebounce = null;
