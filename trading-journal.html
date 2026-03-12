@@ -365,50 +365,62 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
             <input type="text" id="settings-email" readonly style="opacity:0.6;cursor:default">
           </div>
           <div class="form-group" style="margin-bottom:16px">
-            <label>Devise</label>
+            <label>Devise principale des trades</label>
             <select id="settings-currency">
-              <option>USD $ — Dollar américain</option>
-              <option>EUR € — Euro</option>
-              <option>GBP £ — Livre sterling</option>
-              <option>CAD $ — Dollar canadien</option>
-              <option>AUD $ — Dollar australien</option>
-              <option>CHF — Franc suisse</option>
-              <option>JPY ¥ — Yen japonais</option>
-              <option>CNY ¥ — Yuan chinois</option>
-              <option>HKD $ — Dollar de Hong Kong</option>
-              <option>SGD $ — Dollar de Singapour</option>
-              <option>NZD $ — Dollar néo-zélandais</option>
-              <option>MXN $ — Peso mexicain</option>
-              <option>BRL R$ — Réal brésilien</option>
-              <option>INR ₹ — Roupie indienne</option>
-              <option>KRW ₩ — Won sud-coréen</option>
-              <option>NOK kr — Couronne norvégienne</option>
-              <option>SEK kr — Couronne suédoise</option>
-              <option>DKK kr — Couronne danoise</option>
-              <option>ZAR R — Rand sud-africain</option>
-              <option>AED د.إ — Dirham des EAU</option>
-              <option>SAR ﷼ — Riyal saoudien</option>
-              <option>TRY ₺ — Livre turque</option>
-              <option>RUB ₽ — Rouble russe</option>
-              <option>PLN zł — Zloty polonais</option>
-              <option>CZK Kč — Couronne tchèque</option>
-              <option>HUF Ft — Forint hongrois</option>
-              <option>RON lei — Leu roumain</option>
-              <option>ILS ₪ — Shekel israélien</option>
-              <option>THB ฿ — Baht thaïlandais</option>
-              <option>MYR RM — Ringgit malaisien</option>
-              <option>IDR Rp — Roupie indonésienne</option>
-              <option>PHP ₱ — Peso philippin</option>
-              <option>VND ₫ — Dong vietnamien</option>
-              <option>NGN ₦ — Naira nigérian</option>
-              <option>EGP £ — Livre égyptienne</option>
-              <option>MAD — Dirham marocain</option>
-              <option>MUR Rs — Roupie mauricienne</option>
-              <option>XOF — Franc CFA BCEAO</option>
-              <option>XAF — Franc CFA BEAC</option>
+              <option value="USD">USD $ — Dollar américain</option>
+              <option value="EUR">EUR € — Euro</option>
             </select>
           </div>
           <button class="btn btn-primary" style="width:100%;margin-bottom:10px" onclick="saveProfile()">Sauvegarder</button>
+
+          <!-- Convertisseur manuel -->
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px">
+            <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.05em">🔄 Convertisseur de devises</div>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+              <input type="number" id="conv-amount" placeholder="Montant" step="0.01"
+                style="flex:1;min-width:90px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:16px;font-weight:700;box-sizing:border-box"
+                oninput="doConvert()">
+              <select id="conv-from" onchange="doConvert()" style="padding:10px 8px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:13px">
+                <option value="USD">USD $</option>
+                <option value="EUR">EUR €</option>
+                <option value="GBP">GBP £</option>
+                <option value="CAD">CAD $</option>
+                <option value="AUD">AUD $</option>
+                <option value="CHF">CHF</option>
+                <option value="JPY">JPY ¥</option>
+                <option value="MUR">MUR Rs</option>
+                <option value="MXN">MXN $</option>
+                <option value="BRL">BRL R$</option>
+                <option value="INR">INR ₹</option>
+                <option value="ZAR">ZAR R</option>
+                <option value="AED">AED</option>
+                <option value="NGN">NGN ₦</option>
+                <option value="XOF">XOF</option>
+                <option value="MAD">MAD</option>
+              </select>
+              <span style="font-size:18px;color:var(--text3)">→</span>
+              <select id="conv-to" onchange="doConvert()" style="padding:10px 8px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:13px">
+                <option value="EUR">EUR €</option>
+                <option value="USD">USD $</option>
+                <option value="GBP">GBP £</option>
+                <option value="CAD">CAD $</option>
+                <option value="AUD">AUD $</option>
+                <option value="CHF">CHF</option>
+                <option value="JPY">JPY ¥</option>
+                <option value="MUR">MUR Rs</option>
+                <option value="MXN">MXN $</option>
+                <option value="BRL">BRL R$</option>
+                <option value="INR">INR ₹</option>
+                <option value="ZAR">ZAR R</option>
+                <option value="AED">AED</option>
+                <option value="NGN">NGN ₦</option>
+                <option value="XOF">XOF</option>
+                <option value="MAD">MAD</option>
+              </select>
+            </div>
+            <div id="conv-result" style="text-align:center;font-size:26px;font-weight:800;color:var(--accent);font-family:var(--mono);min-height:36px;padding:8px 0">—</div>
+            <div id="conv-rate" style="text-align:center;font-size:11px;color:var(--text3);margin-top:2px"></div>
+          </div>
 
           <!-- Changer mot de passe -->
           <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:4px">
@@ -1753,23 +1765,8 @@ function parseDate(s){
 }
 function parseTime(s){if(!s)return'09:30';const m=s.match(/(\d{1,2}):(\d{2})/);return m?`${m[1].padStart(2,'0')}:${m[2]}`:'09:30';}
 
-// ── CURRENCY SYSTEM ─────────────────────────────────────
-// FX_RATES stocke: combien de cette devise = 1 USD
-// ex: { USD:1, EUR:0.92, GBP:0.77, MUR:46.5 }
-// = 1 USD vaut 0.92 EUR, 0.77 GBP, 46.5 MUR
-var FX_RATES = { USD: 1, EUR: 1, GBP: 1, CAD: 1, AUD: 1, MUR: 1 };
-var DISPLAY_CURRENCY = 'USD';
-var DISPLAY_SYMBOL = '$';
-
-function loadDisplayCurrency(){
-  var saved = localStorage.getItem('tf_currency_full') || '';
-  if(saved){
-    var match = saved.match(/^(\w+)\s+([^\s—]+)/);
-    if(match){ DISPLAY_CURRENCY = match[1]; DISPLAY_SYMBOL = match[2]; }
-  }
-}
-loadDisplayCurrency();
-
+// ── DEVISE SIMPLE ──────────────────────────────────────
+// Chaque trade a sa propre devise (USD ou EUR), affichage tel quel
 function getTradeCurrency(trade){
   if(trade && trade.pnlCurrency) return trade.pnlCurrency;
   if(trade && trade.notes){
@@ -1778,37 +1775,17 @@ function getTradeCurrency(trade){
   }
   return 'USD';
 }
-
-function convertToDisplay(amount, fromCurrency){
-  // FX_RATES[X] = combien de X pour 1 USD
-  // Pour convertir X → Y :  amount / FX_RATES[X] * FX_RATES[Y]
-  if(!fromCurrency || fromCurrency === DISPLAY_CURRENCY) return amount;
-  const fromRate = FX_RATES[fromCurrency] || 1; // X par USD
-  const toRate   = FX_RATES[DISPLAY_CURRENCY] || 1; // Y par USD
-  return amount / fromRate * toRate;
-  // ex: 100 EUR → USD : 100 / 0.92 * 1 = 108.7 ✅
-  // ex: 100 USD → EUR : 100 / 1 * 0.92 = 92 ✅
-  // ex: 100 EUR → MUR : 100 / 0.92 * 46.5 = 5054 ✅
+function getCurrencySymbol(cur){
+  return cur === 'EUR' ? '€' : '$';
 }
-
 function fmtTrade(trade){
   const cur = getTradeCurrency(trade);
-  const val = convertToDisplay(trade.pnl, cur);
-  return(val>=0?'+':'-')+DISPLAY_SYMBOL+Math.abs(val).toFixed(2);
+  const sym = getCurrencySymbol(cur);
+  const v = trade.pnl;
+  return(v>=0?'+':'-')+sym+Math.abs(v).toFixed(2);
 }
-
-function fmt(v, fromCurrency){
-  const val = fromCurrency ? convertToDisplay(v, fromCurrency) : v;
-  return(val>=0?'+':'-')+DISPLAY_SYMBOL+Math.abs(val).toFixed(2);
-}
-
-async function loadFXRates(){
-  try {
-    const res = await fetch('https://api.frankfurter.app/latest?from=USD&to=EUR,GBP,CAD,AUD,MUR,CAD,CHF,JPY,CNY,HKD,SGD,NZD,MXN,BRL,INR,KRW,NOK,SEK,DKK,ZAR,AED,TRY,PLN');
-    const data = await res.json();
-    FX_RATES = { USD: 1, ...data.rates };
-    renderAll();
-  } catch(e) { console.log('FX rates unavailable'); }
+function fmt(v){
+  return(v>=0?'+':'')+(v<0?'-':'')+'$'+Math.abs(v).toFixed(2);
 }
 // ────────────────────────────────────────────────────────
 function toast(m){const t=document.getElementById('toast-el');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
@@ -1817,14 +1794,12 @@ function toast(m){const t=document.getElementById('toast-el');t.textContent=m;t.
 function renderAll(){updStats();drawEquity();drawSess();drawStrat();drawSym();drawKeyStats();drawTable('dash-table');document.getElementById('badge').textContent=T.length;}
 function updateCap(v){cap=parseFloat(v)||10000;localStorage.setItem('tf_cap',cap);renderAll();}
 
-function pnlInDisplay(t){
-  return convertToDisplay(t.pnl, getTradeCurrency(t));
-}
+function pnlInDisplay(t){ return t.pnl; }
 
 function updStats(){
   const wins=T.filter(t=>t.pnl>0),loss=T.filter(t=>t.pnl<=0);
-  const tot=T.reduce((s,t)=>s+pnlInDisplay(t),0),wr=T.length?(wins.length/T.length*100):0;
-  const gw=wins.reduce((s,t)=>s+pnlInDisplay(t),0),gl=Math.abs(loss.reduce((s,t)=>s+pnlInDisplay(t),0));
+  const tot=T.reduce((s,t)=>s+t.pnl,0),wr=T.length?(wins.length/T.length*100):0;
+  const gw=wins.reduce((s,t)=>s+t.pnl,0),gl=Math.abs(loss.reduce((s,t)=>s+t.pnl,0));
   const pf=gl>0?gw/gl:wins.length>0?999:0;
   document.getElementById('s-pnl').textContent=fmt(tot);document.getElementById('s-pnl').className='stat-value '+(tot>=0?'green':'red');
   const pct=cap>0?(tot/cap*100):0;
@@ -1833,7 +1808,7 @@ function updStats(){
   document.getElementById('s-pf').textContent=pf===999?'∞':pf.toFixed(2);document.getElementById('s-tot').textContent=T.length;document.getElementById('s-wl').textContent=`${wins.length}W / ${loss.length}L`;
   let sc=50;if(T.length>0){sc=Math.round(wr*0.4+Math.min(pf,5)*10+(pct>0?15:0)+Math.min(T.length,20)*0.5);sc=Math.max(0,Math.min(100,sc));}
   document.getElementById('score-num').textContent=sc;document.getElementById('score-pct').textContent=sc;document.getElementById('score-ring').style.strokeDashoffset=163-(163*sc/100);
-  document.getElementById('eq-meta').textContent=`${DISPLAY_SYMBOL}${cap.toLocaleString()} → ${fmt(cap+tot)}`;
+  document.getElementById('eq-meta').textContent=`$${cap.toLocaleString()} → ${fmt(cap+tot)}`;
 }
 function drawEquity(){
   const line=document.getElementById('eq-line'),area=document.getElementById('eq-area'),ph=document.getElementById('eq-ph');
@@ -2049,11 +2024,45 @@ function showCalTip(e, el){
 }
 function hideCalTip(){ document.getElementById('cal-tooltip').style.display='none'; }
 
-renderAll();renderCal();initPropFirms();loadFXRates();
+renderAll();renderCal();initPropFirms();
 
 
 // Logout button
 document.getElementById('logout-btn').addEventListener('click', doLogout);
+
+// ── CONVERTISSEUR MANUEL ───────────────────────────────
+let convDebounce = null;
+async function doConvert(){
+  const amount = parseFloat(document.getElementById('conv-amount').value);
+  const from   = document.getElementById('conv-from').value;
+  const to     = document.getElementById('conv-to').value;
+  const resEl  = document.getElementById('conv-result');
+  const rateEl = document.getElementById('conv-rate');
+  if(!amount || isNaN(amount)){ resEl.textContent='—'; rateEl.textContent=''; return; }
+  if(from === to){ 
+    resEl.textContent = amount.toFixed(2) + ' ' + to;
+    rateEl.textContent = '1 ' + from + ' = 1 ' + to;
+    return; 
+  }
+  resEl.textContent = '⏳';
+  clearTimeout(convDebounce);
+  convDebounce = setTimeout(async () => {
+    try {
+      const r = await fetch(`https://api.frankfurter.app/latest?from=${from}&to=${to}`);
+      const d = await r.json();
+      const rate = d.rates[to];
+      const result = amount * rate;
+      const sym = { USD:'$', EUR:'€', GBP:'£', JPY:'¥', INR:'₹', MUR:'Rs', BRL:'R$', ZAR:'R', NGN:'₦' };
+      const s = sym[to] || '';
+      resEl.textContent = s + result.toFixed(2) + ' ' + to;
+      rateEl.textContent = `1 ${from} = ${rate.toFixed(4)} ${to} • Taux en temps réel`;
+    } catch(e) {
+      resEl.textContent = '❌ Erreur réseau';
+      rateEl.textContent = '';
+    }
+  }, 400);
+}
+// ─────────────────────────────────────────────────────
 
 // ── PROFILE FUNCTIONS ──────────────────────────────────
 function handlePhotoUpload(event){
