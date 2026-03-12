@@ -3060,40 +3060,82 @@ async function loadEcoCalendar() {
   const body = document.getElementById('eco-body');
   if(!body) return;
   body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--text3);font-size:13px;gap:8px"><span>⏳</span> Chargement des annonces...</div>';
-  try {
-    const param = getFFDateParam(ecoDateMode);
-    const isNext = ecoDateMode === 'next';
-    const url = isNext ? `https://nfs.faireconomy.media/ff_calendar_nextweek.json?t=${Date.now()}` : `https://nfs.faireconomy.media/ff_calendar_thisweek.json?t=${Date.now()}`;
-    const res = await fetch(url);
-    const json = await res.json();
-    // ForexFactory JSON: [{title, country, date, time, impact, forecast, previous}]
-    // Map impact: 'High'/'Medium'/'Low'/'Holiday'
-    ecoData = json
-      .map(ev => ({
-        event: ev.title || '—',
-        currency: ev.country || '—',
-        time: ev.date && ev.time ? ev.date + 'T' + ev.time : ev.date,
-        impact: (ev.impact||'Low').toLowerCase().replace('holiday','low'),
-        forecast: ev.forecast || '',
-        previous: ev.previous || '',
-        actual: ev.actual || ''
-      }))
-      .sort((a,b) => new Date(a.time) - new Date(b.time));
 
-    // Filter by date mode client-side
+  const isNext = ecoDateMode === 'next';
+  // Try multiple sources in order
+  const sources = [
+    isNext
+      ? 'https://nfs.faireconomy.media/ff_calendar_nextweek.json'
+      : 'https://nfs.faireconomy.media/ff_calendar_thisweek.json',
+    isNext
+      ? 'https://corsproxy.io/?https://nfs.faireconomy.media/ff_calendar_nextweek.json'
+      : 'https://corsproxy.io/?https://nfs.faireconomy.media/ff_calendar_thisweek.json',
+    isNext
+      ? 'https://api.allorigins.win/raw?url=https://nfs.faireconomy.media/ff_calendar_nextweek.json'
+      : 'https://api.allorigins.win/raw?url=https://nfs.faireconomy.media/ff_calendar_thisweek.json',
+  ];
+
+  let json = null;
+  for(const url of sources) {
+    try {
+      const res = await fetch(url, {signal: AbortSignal.timeout(6000)});
+      if(!res.ok) continue;
+      json = await res.json();
+      if(Array.isArray(json) && json.length > 0) break;
+    } catch(e) { continue; }
+  }
+
+  if(!json || !Array.isArray(json)) {
+    body.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text3)"><div style="font-size:32px;margin-bottom:12px">📭</div><div style="font-size:14px;color:var(--text2)">Données indisponibles</div><div style="font-size:12px;margin-top:8px">Vérifiez votre connexion internet</div></div>';
+    return;
+  }
+
+  // Parse ForexFactory fields: title, country, date, time, impact, forecast, previous, actual
+  // date format: "03-12-2026", time: "12:30am" etc.
+  ecoData = json.map(ev => {
+    // Parse date: MM-DD-YYYY or YYYY-MM-DD
+    let isoDate = '';
+    const d = ev.date || '';
+    if(d.match(/^\d{2}-\d{2}-\d{4}$/)) {
+      const [mm,dd,yyyy] = d.split('-');
+      isoDate = `${yyyy}-${mm}-${dd}`;
+    } else {
+      isoDate = d;
+    }
+    // Parse time: "12:30am" -> "12:30"
+    let isoTime = ev.time || '00:00';
+    if(isoTime.match(/\d+(am|pm)/i)) {
+      const match = isoTime.match(/^(\d+):(\d+)(am|pm)$/i);
+      if(match) {
+        let h = parseInt(match[1]);
+        const m = match[2];
+        const ampm = match[3].toLowerCase();
+        if(ampm === 'pm' && h !== 12) h += 12;
+        if(ampm === 'am' && h === 12) h = 0;
+        isoTime = String(h).padStart(2,'0') + ':' + m;
+      }
+    }
+    return {
+      event: ev.title || '—',
+      currency: (ev.country || '').toUpperCase(),
+      time: isoDate + 'T' + isoTime,
+      isoDate,
+      impact: (ev.impact || 'Low').toLowerCase().replace('holiday','low').replace('non-economic','low'),
+      forecast: ev.forecast || '',
+      previous: ev.previous || '',
+      actual: ev.actual || ''
+    };
+  }).sort((a,b) => new Date(a.time) - new Date(b.time));
+
+  // Client-side date filter for "today"
+  if(ecoDateMode === 'today') {
     const now = new Date();
     const pad = n => String(n).padStart(2,'0');
     const todayStr = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
-    if(ecoDateMode === 'today') {
-      ecoData = ecoData.filter(ev => ev.time && ev.time.startsWith(todayStr));
-    }
-    // week/next are pre-filtered by the URL (thisweek / nextweek)
-
-    renderEcoCalendar();
-  } catch(e) {
-    console.error('Eco calendar error:', e);
-    body.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text3)"><div style="font-size:32px;margin-bottom:12px">📭</div><div style="font-size:14px">Impossible de charger le calendrier économique</div><div style="font-size:12px;margin-top:8px;color:var(--text3)">'+e.message+'</div></div>';
+    ecoData = ecoData.filter(ev => ev.isoDate === todayStr);
   }
+
+  renderEcoCalendar();
 }
 
 function renderEcoCalendar() {
