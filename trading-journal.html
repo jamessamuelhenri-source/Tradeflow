@@ -2537,7 +2537,7 @@ async function handlePhotoUpload(event){
   // Upload vers Supabase Storage
   try {
     const ext = file.name.split('.').pop();
-    const path = `avatars/${currentUser.id}.${ext}`;
+    const path = `${currentUser.id}/avatar.${ext}`;
     const { error } = await db.storage.from('profiles').upload(path, file, { upsert: true, contentType: file.type });
     if(error) throw error;
     // Récupérer l'URL publique
