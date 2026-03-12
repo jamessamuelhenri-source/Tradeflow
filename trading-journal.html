@@ -658,6 +658,11 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
       </div>
 
       <div class="form-group">
+        <label>Symbole</label>
+        <input type="text" id="q-sym" placeholder="ex: MNQ, ES, NQ, AAPL...">
+      </div>
+
+      <div class="form-group">
         <label>Numéro de compte</label>
         <input type="text" id="q-account" placeholder="ex: PA12345, APEX-001...">
       </div>
@@ -1115,6 +1120,7 @@ function openQuick(){
   document.getElementById('q-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('q-pnl').value = '';
   document.getElementById('q-firm').value = '';
+  document.getElementById('q-sym').value = '';
 }
 function closeQuick(){ document.getElementById('quick-modal').classList.remove('open'); }
 function qSetMood(m){
@@ -1131,31 +1137,35 @@ async function saveQuick(){
   const pnlRaw = parseFloat(document.getElementById('q-pnl').value);
   const firm = getFirm('q');
   const account = document.getElementById('q-account').value.trim();
+  const symRaw = document.getElementById('q-sym').value.trim().toUpperCase();
   const tradeCurrency = 'USD';
   if(!date || isNaN(pnlRaw)){ toast('❌ Montant et date requis'); return; }
 
-  const label = firm + (account ? ' · ' + account : '');
-  // Stocker le montant original + devise dans notes
+  const firmLabel = firm + (account ? ' · ' + account : '');
   const note = `[CUR:${tradeCurrency}]` + (account ? ` | Compte: ${account}` : '');
 
   const trade = {
-    id: Date.now(), sym: label, side: pnlRaw>=0?'LONG':'SHORT',
+    id: Date.now(),
+    sym: symRaw || firmLabel,   // symbole affiché dans le tableau
+    side: pnlRaw>=0?'LONG':'SHORT',
     entry: 0, exit: 0, qty: 1,
-    pnl: pnlRaw,        // montant original, pas de conversion
-    pnlCurrency: tradeCurrency,  // devise du trade
+    pnl: pnlRaw,
+    pnlCurrency: tradeCurrency,
     pnlPct: 0,
-    date, time: '09:30', strat: label,
+    date, time: '09:30',
+    strat: firmLabel,           // prop firm dans colonne PropFirm
     emotion: '', rating: 3, tags: ['journalier'], notes: note
   };
   T.push(trade); save(); renderAll(); closeQuick();
   document.getElementById('q-account').value = '';
   document.getElementById('q-pnl').value = '';
-  toast('✅ ' + (pnlRaw>=0?'+':'') + pnlRaw.toFixed(2) + ' ' + tradeCurrency + ' enregistré !');
+  document.getElementById('q-sym').value = '';
+  toast('✅ ' + (pnlRaw>=0?'+':'') + pnlRaw.toFixed(2) + ' USD enregistré !');
   if(currentUser){
     db.from('trades').insert({
-      user_id:currentUser.id, sym:label, side:trade.side,
+      user_id:currentUser.id, sym:trade.sym, side:trade.side,
       entry:0, exit:0, qty:1, pnl:pnlRaw, pnl_pct:0,
-      date, time:'09:30', strat:label,
+      date, time:'09:30', strat:firmLabel,
       emotion:'', rating:3, tags:['journalier'], notes:note
     }).select().then(({data})=>{
       if(data && data[0]) trade.id = data[0].id;
@@ -1987,10 +1997,23 @@ function drawTable(id){
   if(!f.length){w.innerHTML=`<div class="no-results">📭 Aucun trade correspondant.</div>`;return;}
   const rows=f.map(t=>{
     const stars=Array.from({length:5},(_,i)=>`<span class="star${i<t.rating?' filled':''}">★</span>`).join('');
-    const tags=t.tags.map(g=>`<span class="tag">${g}</span>`).join('')||'—';
-    return`<tr><td><span class="symbol">${t.sym}</span></td><td><span class="side-badge side-${t.side.toLowerCase()}">${t.side}</span></td><td style="font-family:var(--mono)">${t.date}</td><td style="font-family:var(--mono)">$${t.entry.toFixed(2)}</td><td style="font-family:var(--mono)">$${t.exit.toFixed(2)}</td><td style="font-family:var(--mono)">${t.qty}</td><td><span class="${t.pnl>=0?'pnl-pos':'pnl-neg'}">${fmtTrade(t)}</span></td><td style="font-family:var(--mono);font-size:11px">${t.pnlPct>=0?'+':''}${t.pnlPct.toFixed(2)}%</td><td><span style="font-size:11px;color:var(--text2)">${t.strat||'—'}</span></td><td><div class="rating">${stars}</div></td><td>${tags}</td><td><button onclick="delTrade(${t.id})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px">🗑</button></td></tr>`;
+    const tags=t.tags&&t.tags.length?t.tags.map(g=>`<span class="tag">${g}</span>`).join(''):'—';
+    const firm = t.strat||'—';
+    const symDisplay = t.sym && t.sym !== firm ? t.sym : '—';
+    const notes = t.notes ? t.notes.replace(/\[CUR:\w+\]\s*\|?\s*/g,'').replace(/\|?\s*Compte:[^|]*/g,'').trim()||'—' : '—';
+    return`<tr>
+      <td style="font-size:12px;color:var(--text);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${firm}</td>
+      <td style="font-family:var(--mono);font-weight:700;color:var(--accent)">${symDisplay}</td>
+      <td style="font-family:var(--mono)">${t.date}</td>
+      <td><span class="${t.pnl>=0?'pnl-pos':'pnl-neg'}">${fmtTrade(t)}</span></td>
+      <td style="font-family:var(--mono);font-size:11px">${t.pnlPct>=0?'+':''}${t.pnlPct.toFixed(2)}%</td>
+      <td style="font-size:11px;color:var(--text3);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${t.notes||''}">${notes}</td>
+      <td>${tags}</td>
+      <td><div class="rating">${stars}</div></td>
+      <td><button onclick="delTrade(${t.id})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px">🗑</button></td>
+    </tr>`;
   }).join('');
-  w.innerHTML=`<table><thead><tr><th>Symbole</th><th>Dir</th><th>Date</th><th>Entrée</th><th>Sortie</th><th>Qté</th><th>P&L</th><th>%</th><th>Stratégie</th><th>Note</th><th>Tags</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+  w.innerHTML=`<table><thead><tr><th>Prop Firm</th><th>Symbole</th><th>Date</th><th>P&L</th><th>%</th><th>Notes</th><th>Tags</th><th>Note</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 function renderJour(){drawTable('jour-table');}
 function filt(f,el){filt_active=f;document.querySelectorAll('.filter-pill').forEach(p=>p.classList.remove('active'));el.classList.add('active');drawTable('dash-table');}
@@ -2373,23 +2396,19 @@ function exportReportPDF(){
   // ── Tableau autoTable ──
   const sorted = [...trades].sort((a,b)=>b.date.localeCompare(a.date));
   const rows = sorted.map(t=>([
-    t.sym||'—', t.date, t.time||'—', t.side||'—',
-    String(t.qty||1),
-    t.entry?'$'+t.entry.toFixed(2):'—',
-    t.exit ?'$'+t.exit.toFixed(2) :'—',
-    fmtTrade(t)
+    t.sym||'—', t.date, fmtTrade(t)
   ]));
 
   doc.autoTable({
     startY: y,
-    head:[['Symbole','Date','Heure','Side','Qté','Entrée','Sortie','P&L']],
+    head:[['Symbole','Date','P&L']],
     body: rows,
     theme:'grid',
     styles:{ font:'helvetica', fontSize:8, cellPadding:2.5, fillColor:[18,22,30], textColor:[200,200,200], lineColor:[40,50,65], lineWidth:0.3 },
     headStyles:{ fillColor:[25,32,45], textColor:[0,229,160], fontStyle:'bold', fontSize:8 },
-    columnStyles:{ 7:{ halign:'right' } },
+    columnStyles:{ 2:{ halign:'right' } },
     didParseCell:(data)=>{
-      if(data.section==='body' && data.column.index===7){
+      if(data.section==='body' && data.column.index===2){
         data.cell.styles.textColor = data.cell.raw.startsWith('+') ? [0,229,160] : [255,77,109];
         data.cell.styles.fontStyle = 'bold';
       }
