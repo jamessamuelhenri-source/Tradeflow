@@ -2890,28 +2890,37 @@ async function handlePhotoUpload(event){
   if(file.size > 2*1024*1024){ toast('❌ Photo trop grande (max 2MB)'); return; }
   if(!currentUser){ toast('❌ Non connecté'); return; }
 
-  // Affichage immédiat en local
-  const reader = new FileReader();
-  reader.onload = (e) => applyPhoto(e.target.result);
-  reader.readAsDataURL(file);
-
   toast('⏳ Upload en cours...');
 
-  // Upload vers Supabase Storage
-  try {
-    const ext = file.name.split('.').pop();
-    const path = `${currentUser.id}/avatar.${ext}`;
-    const { error } = await db.storage.from('profiles').upload(path, file, { upsert: true, contentType: file.type });
-    if(error) throw error;
-    const { data } = db.storage.from('profiles').getPublicUrl(path);
-    const url = data.publicUrl + '?t=' + Date.now();
-    await db.from('profiles').update({ avatar_url: url }).eq('id', currentUser.id);
-    applyPhoto(url);
-    toast('✅ Photo sauvegardée !');
-  } catch(e) {
-    console.error('Photo upload error:', e);
-    toast('⚠️ Photo sauvegardée localement');
-  }
+  // Compresser et convertir en base64
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    // Compresser via canvas
+    const img = new Image();
+    img.onload = async () => {
+      const canvas = document.createElement('canvas');
+      const max = 200;
+      const ratio = Math.min(max/img.width, max/img.height, 1);
+      canvas.width  = Math.round(img.width  * ratio);
+      canvas.height = Math.round(img.height * ratio);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      const base64 = canvas.toDataURL('image/jpeg', 0.8);
+
+      // Afficher immédiatement
+      applyPhoto(base64);
+
+      // Sauvegarder en base64 dans Supabase profiles
+      try {
+        await db.from('profiles').update({ avatar_url: base64 }).eq('id', currentUser.id);
+        toast('✅ Photo sauvegardée !');
+      } catch(err) {
+        console.error(err);
+        toast('✅ Photo sauvegardée localement');
+      }
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 
 async function saveProfile(){
