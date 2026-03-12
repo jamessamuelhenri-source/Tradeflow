@@ -1130,7 +1130,8 @@ async function loadProfile(user){
 
   // Try to load profile from DB (non-blocking)
   try {
-    const { data } = await db.from('profiles').select('*').eq('id', user.id).single();
+    const { data, error } = await db.from('profiles').select('*').eq('id', user.id).single();
+    if(error) console.warn('Profile load error:', error.message);
     currentProfile = data;
     const isPro = data?.plan === 'pro';
     document.getElementById('user-plan-badge').innerHTML =
@@ -3062,29 +3063,27 @@ async function loadEcoCalendar() {
   body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--text3);font-size:13px;gap:8px"><span>⏳</span> Chargement des annonces...</div>';
 
   const isNext = ecoDateMode === 'next';
-  // Try multiple sources in order
   const baseUrl = isNext
     ? 'https://nfs.faireconomy.media/ff_calendar_nextweek.json'
     : 'https://nfs.faireconomy.media/ff_calendar_thisweek.json';
 
-  // Multiple CORS proxies to try
-  const sources = [
-    `https://api.allorigins.win/get?url=${encodeURIComponent(baseUrl)}`,
-    `https://corsproxy.io/?${encodeURIComponent(baseUrl)}`,
-    `https://proxy.cors.sh/${baseUrl}`,
-    `https://thingproxy.freeboard.io/fetch/${baseUrl}`,
+  let json = null;
+
+  // Try proxies one by one until one works
+  const proxies = [
+    async () => { const r = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(baseUrl)}`); const d = await r.json(); return JSON.parse(d.contents); },
+    async () => { const r = await fetch(`https://api.codetabs.com/v1/proxy?quest=${baseUrl}`); return await r.json(); },
+    async () => { const r = await fetch(`https://corsproxy.io/?${encodeURIComponent(baseUrl)}`); return await r.json(); },
   ];
 
-  let json = null;
-  for(const url of sources) {
+  for(const proxy of proxies) {
     try {
-      const res = await fetch(url, {signal: AbortSignal.timeout(8000)});
-      if(!res.ok) continue;
-      const raw = await res.json();
-      // allorigins wraps in {contents: "..."}
-      const data = raw.contents ? JSON.parse(raw.contents) : raw;
+      const data = await Promise.race([
+        proxy(),
+        new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 7000))
+      ]);
       if(Array.isArray(data) && data.length > 0) { json = data; break; }
-    } catch(e) { continue; }
+    } catch(e) { console.warn('Proxy failed:', e.message); continue; }
   }
 
   if(!json || !Array.isArray(json)) {
