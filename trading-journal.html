@@ -767,11 +767,25 @@ async function loadProfile(user){
   if(nameEl) nameEl.value = name;
   const photoEl = document.getElementById('profile-photo-initials');
   if(photoEl) photoEl.textContent = initials;
-  // Load saved photo
-  const savedPhoto = localStorage.getItem('tf_photo');
-  if(savedPhoto){
+
+  // Charger photo depuis Supabase ou localStorage
+  function applyPhoto(url){
     const img = document.getElementById('profile-photo-img');
-    if(img){ img.src = savedPhoto; img.style.display='block'; if(photoEl) photoEl.style.display='none'; }
+    const ini = document.getElementById('profile-photo-initials');
+    const av  = document.getElementById('user-avatar');
+    if(img){ img.src = url; img.style.display='block'; }
+    if(ini) ini.style.display='none';
+    if(av)  av.innerHTML = `<img id="user-avatar-img" src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+    localStorage.setItem('tf_photo_url', url);
+  }
+  const cachedUrl = localStorage.getItem('tf_photo_url');
+  if(cachedUrl) applyPhoto(cachedUrl);
+  else {
+    const savedPhoto = localStorage.getItem('tf_photo');
+    if(savedPhoto){
+      const img = document.getElementById('profile-photo-img');
+      if(img){ img.src = savedPhoto; img.style.display='block'; if(photoEl) photoEl.style.display='none'; }
+    }
   }
 
   // Try to load profile from DB (non-blocking)
@@ -783,6 +797,11 @@ async function loadProfile(user){
       isPro ? '<span class="plan-badge pro">✦ PRO</span>' : '<span class="plan-badge free">FREE</span>';
     document.getElementById('plan-free-ui').style.display = isPro ? 'none' : '';
     document.getElementById('plan-pro-ui').style.display  = isPro ? '' : 'none';
+
+    // Charger la photo depuis Supabase si elle existe
+    if(data?.avatar_url){
+      applyPhoto(data.avatar_url);
+    }
 
     // Trial days remaining
     if(!isPro){
@@ -2056,22 +2075,51 @@ async function doConvert(){
 // ─────────────────────────────────────────────────────
 
 // ── PROFILE FUNCTIONS ──────────────────────────────────
-function handlePhotoUpload(event){
+async function handlePhotoUpload(event){
   const file = event.target.files[0];
   if(!file) return;
   if(file.size > 2*1024*1024){ toast('❌ Photo trop grande (max 2MB)'); return; }
+  if(!currentUser){ toast('❌ Non connecté'); return; }
+
+  toast('⏳ Upload en cours...');
+
+  // Affichage immédiat en local
   const reader = new FileReader();
   reader.onload = (e) => {
     const img = document.getElementById('profile-photo-img');
-    const initials = document.getElementById('profile-photo-initials');
+    const ini = document.getElementById('profile-photo-initials');
+    const ava = document.getElementById('user-avatar-img');
     img.src = e.target.result;
     img.style.display = 'block';
-    initials.style.display = 'none';
-    // Save to localStorage
-    localStorage.setItem('tf_photo', e.target.result);
-    toast('✅ Photo mise à jour !');
+    ini.style.display = 'none';
+    // Aussi mettre à jour l'avatar sidebar
+    if(!ava){
+      const av = document.getElementById('user-avatar');
+      av.innerHTML = `<img id="user-avatar-img" src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+    } else { ava.src = e.target.result; }
   };
   reader.readAsDataURL(file);
+
+  // Upload vers Supabase Storage
+  try {
+    const ext = file.name.split('.').pop();
+    const path = `avatars/${currentUser.id}.${ext}`;
+    const { error } = await db.storage.from('profiles').upload(path, file, { upsert: true, contentType: file.type });
+    if(error) throw error;
+    // Récupérer l'URL publique
+    const { data } = db.storage.from('profiles').getPublicUrl(path);
+    const url = data.publicUrl + '?t=' + Date.now();
+    // Sauvegarder l'URL dans la table profiles
+    await db.from('profiles').update({ avatar_url: url }).eq('id', currentUser.id);
+    localStorage.setItem('tf_photo_url', url);
+    toast('✅ Photo sauvegardée !');
+  } catch(e) {
+    // Fallback: garder en localStorage si Supabase échoue
+    const reader2 = new FileReader();
+    reader2.onload = (ev) => { localStorage.setItem('tf_photo', ev.target.result); };
+    reader2.readAsDataURL(file);
+    toast('✅ Photo mise à jour (local)');
+  }
 }
 
 async function saveProfile(){
