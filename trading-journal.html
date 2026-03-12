@@ -672,7 +672,7 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
           <!-- Danger zone -->
           <div class="chart-card">
             <div class="chart-title" style="margin-bottom:16px;color:var(--red)">⚠️ Zone dangereuse</div>
-            <button class="btn btn-ghost" style="width:100%;color:var(--red);border-color:var(--red);margin-bottom:10px" onclick="if(confirm('Effacer TOUS les trades ?')){T=[];save();renderAll();toast('🗑️ Données effacées');}">
+            <button class="btn btn-ghost" style="width:100%;color:var(--red);border-color:var(--red);margin-bottom:10px" onclick="deleteAllTrades()">
               Effacer tous les trades
             </button>
             <button class="btn btn-ghost" style="width:100%;color:var(--red);border-color:var(--red)" onclick="doLogout()">
@@ -2733,6 +2733,21 @@ function applyPhoto(url){
 }
 let convDebounce = null;
 
+async function deleteAllTrades(){
+  if(!confirm('⚠️ Effacer TOUS les trades définitivement ?\nCette action est irréversible.')) return;
+  // Effacer local
+  T = [];
+  save();
+  renderAll();
+  toast('🗑️ Trades effacés...');
+  // Effacer Supabase
+  if(currentUser){
+    const { error } = await db.from('trades').delete().eq('user_id', currentUser.id);
+    if(error){ console.error(error); toast('⚠️ Erreur suppression DB: ' + error.message); }
+    else toast('✅ Tous les trades supprimés !');
+  }
+}
+
 // ── EDIT MODAL ─────────────────────────────────────────
 let editId = null;
 let eType = 'Funded';
@@ -2911,11 +2926,12 @@ async function handlePhotoUpload(event){
 
       // Sauvegarder en base64 dans Supabase profiles
       try {
-        await db.from('profiles').update({ avatar_url: base64 }).eq('id', currentUser.id);
-        toast('✅ Photo sauvegardée !');
+        const { data: upData, error: upErr } = await db.from('profiles').update({ avatar_url: base64 }).eq('id', currentUser.id).select();
+        if(upErr) { console.error('❌ Supabase photo error:', upErr); toast('⚠️ Erreur sauvegarde: ' + upErr.message); }
+        else { console.log('✅ Photo saved to DB, length:', base64.length); toast('✅ Photo sauvegardée !'); }
       } catch(err) {
-        console.error(err);
-        toast('✅ Photo sauvegardée localement');
+        console.error('❌ Photo catch:', err);
+        toast('⚠️ Erreur: ' + err.message);
       }
     };
     img.src = e.target.result;
