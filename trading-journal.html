@@ -151,6 +151,7 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
 .plan-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:100px;font-size:10px;font-weight:700;}
 .plan-badge.free{background:rgba(255,255,255,0.05);color:var(--text3);}
 .plan-badge.pro{background:linear-gradient(90deg,rgba(0,229,160,0.15),rgba(0,229,160,0.05));border:1px solid rgba(0,229,160,0.3);color:var(--accent);}
+.rp-filter.active{background:var(--accent)!important;color:var(--bg)!important;border-color:var(--accent)!important;font-weight:700;}
 /* ── UPGRADE BANNER ── */
 .upgrade-banner{background:linear-gradient(135deg,rgba(0,229,160,0.08),rgba(77,159,255,0.08));border:1px solid rgba(0,229,160,0.2);border-radius:12px;padding:16px;margin:12px 0;display:none;}
 .upgrade-banner.show{display:block;}
@@ -325,14 +326,121 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
 
     <!-- REPORTS -->
     <div id="page-reports" class="page">
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
-        <div class="chart-card" style="cursor:pointer" onclick="toast('📊 Rapport généré!')"><div style="font-size:28px;margin-bottom:10px">📊</div><div class="chart-title" style="margin-bottom:6px">Rapport Mensuel</div><div style="font-size:12px;color:var(--text3)">Performances du mois</div></div>
-        <div class="chart-card" style="cursor:pointer" onclick="toast('🏆 Analyse des setups...')"><div style="font-size:28px;margin-bottom:10px">🏆</div><div class="chart-title" style="margin-bottom:6px">Meilleures Setups</div><div style="font-size:12px;color:var(--text3)">Patterns rentables</div></div>
-        <div class="chart-card" style="cursor:pointer" onclick="toast('⏰ Analyse temporelle...')"><div style="font-size:28px;margin-bottom:10px">⏰</div><div class="chart-title" style="margin-bottom:6px">Analyse Temporelle</div><div style="font-size:12px;color:var(--text3)">Meilleures heures</div></div>
-        <div class="chart-card" style="cursor:pointer" onclick="toast('🎯 Analyse des erreurs...')"><div style="font-size:28px;margin-bottom:10px">🎯</div><div class="chart-title" style="margin-bottom:6px">Analyse Erreurs</div><div style="font-size:12px;color:var(--text3)">Patterns de pertes</div></div>
-        <div class="chart-card" style="cursor:pointer" onclick="toast('📈 Drawdown analysis...')"><div style="font-size:28px;margin-bottom:10px">📈</div><div class="chart-title" style="margin-bottom:6px">Drawdown</div><div style="font-size:12px;color:var(--text3)">Risque et drawdown</div></div>
-        <div class="chart-card" style="cursor:pointer" onclick="toast('🧠 Rapport psychologique...')"><div style="font-size:28px;margin-bottom:10px">🧠</div><div class="chart-title" style="margin-bottom:6px">Psychologie</div><div style="font-size:12px;color:var(--text3)">Émotions et discipline</div></div>
+
+      <!-- Filtres date -->
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:18px;flex-wrap:wrap">
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost rp-filter active" onclick="setReportFilter('today',this)">Aujourd'hui</button>
+          <button class="btn btn-ghost rp-filter" onclick="setReportFilter('week',this)">Semaine</button>
+          <button class="btn btn-ghost rp-filter" onclick="setReportFilter('month',this)">Mois</button>
+          <button class="btn btn-ghost rp-filter" onclick="setReportFilter('all',this)">Tout</button>
+        </div>
+        <input type="date" id="rp-from" onchange="setReportFilter('custom',null)" style="padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px">
+        <span style="color:var(--text3);font-size:12px">→</span>
+        <input type="date" id="rp-to" onchange="setReportFilter('custom',null)" style="padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px">
       </div>
+
+      <!-- Ligne stats ALL TRADES / PROFIT / LOSING -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
+        <!-- ALL TRADES -->
+        <div class="chart-card" style="padding:14px">
+          <div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.08em;margin-bottom:10px;text-transform:uppercase">Tous les trades</div>
+          <div id="rp-gross" style="font-size:22px;font-weight:800;color:var(--accent);font-family:var(--mono);margin-bottom:10px">+$0.00</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px">
+            <div><span style="color:var(--text3)"># Trades</span><br><span id="rp-ntrades" style="font-family:var(--mono);font-weight:700">0</span></div>
+            <div><span style="color:var(--text3)"># Contrats</span><br><span id="rp-ncontracts" style="font-family:var(--mono);font-weight:700">0</span></div>
+            <div><span style="color:var(--text3)">Durée moy.</span><br><span id="rp-avgdur" style="font-family:var(--mono);font-weight:700">—</span></div>
+            <div><span style="color:var(--text3)">Durée max</span><br><span id="rp-maxdur" style="font-family:var(--mono);font-weight:700">—</span></div>
+            <div><span style="color:var(--text3)">% Profitable</span><br><span id="rp-winpct" style="font-family:var(--mono);font-weight:700;color:var(--accent)">0%</span></div>
+            <div><span style="color:var(--text3)">Expectancy</span><br><span id="rp-exp" style="font-family:var(--mono);font-weight:700">$0</span></div>
+            <div><span style="color:var(--text3)">Fees & Comm.</span><br><span id="rp-fees" style="font-family:var(--mono);font-weight:700;color:var(--red)">-$0</span></div>
+            <div><span style="color:var(--text3)">Total P&L net</span><br><span id="rp-net" style="font-family:var(--mono);font-weight:700">$0</span></div>
+          </div>
+        </div>
+
+        <!-- PROFIT TRADES -->
+        <div class="chart-card" style="padding:14px">
+          <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.08em;margin-bottom:10px;text-transform:uppercase">Trades gagnants</div>
+          <div id="rp-totalwin" style="font-size:22px;font-weight:800;color:var(--accent);font-family:var(--mono);margin-bottom:10px">+$0.00</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px">
+            <div><span style="color:var(--text3)"># Gagnants</span><br><span id="rp-nwin" style="font-family:var(--mono);font-weight:700">0</span></div>
+            <div><span style="color:var(--text3)"># Contrats W</span><br><span id="rp-nconwin" style="font-family:var(--mono);font-weight:700">0</span></div>
+            <div><span style="color:var(--text3)">Meilleur trade</span><br><span id="rp-besttrade" style="font-family:var(--mono);font-weight:700;color:var(--accent)">$0</span></div>
+            <div><span style="color:var(--text3)">Avg gain</span><br><span id="rp-avgwin" style="font-family:var(--mono);font-weight:700;color:var(--accent)">$0</span></div>
+            <div><span style="color:var(--text3)">Std. Dev.</span><br><span id="rp-stdwin" style="font-family:var(--mono);font-weight:700">$0</span></div>
+            <div><span style="color:var(--text3)">Max Run-up</span><br><span id="rp-maxrunup" style="font-family:var(--mono);font-weight:700;color:var(--accent)">$0</span></div>
+          </div>
+        </div>
+
+        <!-- LOSING TRADES -->
+        <div class="chart-card" style="padding:14px">
+          <div style="font-size:10px;font-weight:700;color:var(--red);letter-spacing:.08em;margin-bottom:10px;text-transform:uppercase">Trades perdants</div>
+          <div id="rp-totalloss" style="font-size:22px;font-weight:800;color:var(--red);font-family:var(--mono);margin-bottom:10px">$0.00</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px">
+            <div><span style="color:var(--text3)"># Perdants</span><br><span id="rp-nloss" style="font-family:var(--mono);font-weight:700">0</span></div>
+            <div><span style="color:var(--text3)"># Contrats L</span><br><span id="rp-nconloss" style="font-family:var(--mono);font-weight:700">0</span></div>
+            <div><span style="color:var(--text3)">Pire trade</span><br><span id="rp-worsttrade" style="font-family:var(--mono);font-weight:700;color:var(--red)">$0</span></div>
+            <div><span style="color:var(--text3)">Avg perte</span><br><span id="rp-avgloss" style="font-family:var(--mono);font-weight:700;color:var(--red)">$0</span></div>
+            <div><span style="color:var(--text3)">Std. Dev.</span><br><span id="rp-stdloss" style="font-family:var(--mono);font-weight:700">$0</span></div>
+            <div><span style="color:var(--text3)">Max Drawdown</span><br><span id="rp-maxdd" style="font-family:var(--mono);font-weight:700;color:var(--red)">$0</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Graphiques ligne 1 : Win/Loss pie + P&L History -->
+      <div style="display:grid;grid-template-columns:220px 1fr 1fr;gap:12px;margin-bottom:12px">
+
+        <!-- Win vs Loss donut -->
+        <div class="chart-card" style="padding:14px;display:flex;flex-direction:column;align-items:center">
+          <div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.08em;margin-bottom:12px;text-transform:uppercase;align-self:flex-start">Win vs Loss</div>
+          <svg id="rp-pie" width="140" height="140" viewBox="0 0 140 140">
+            <circle cx="70" cy="70" r="54" fill="none" stroke="var(--red)" stroke-width="22"/>
+            <circle id="rp-pie-win" cx="70" cy="70" r="54" fill="none" stroke="var(--accent)" stroke-width="22"
+              stroke-dasharray="0 339" stroke-dashoffset="85" style="transition:stroke-dasharray .5s"/>
+            <text x="70" y="66" text-anchor="middle" fill="var(--text)" font-size="18" font-weight="800" font-family="var(--mono)" id="rp-pie-pct">0%</text>
+            <text x="70" y="82" text-anchor="middle" fill="var(--text3)" font-size="10">Win Rate</text>
+          </svg>
+          <div style="display:flex;gap:12px;margin-top:8px;font-size:11px">
+            <div style="display:flex;align-items:center;gap:4px"><div style="width:10px;height:10px;border-radius:50%;background:var(--accent)"></div><span id="rp-pie-wlabel">0W</span></div>
+            <div style="display:flex;align-items:center;gap:4px"><div style="width:10px;height:10px;border-radius:50%;background:var(--red)"></div><span id="rp-pie-llabel">0L</span></div>
+          </div>
+        </div>
+
+        <!-- P&L History barres -->
+        <div class="chart-card" style="padding:14px">
+          <div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.08em;margin-bottom:10px;text-transform:uppercase">P&L Historique</div>
+          <div id="rp-pnl-bars" style="display:flex;align-items:flex-end;gap:3px;height:100px;overflow:hidden"></div>
+        </div>
+
+        <!-- P&L par heure -->
+        <div class="chart-card" style="padding:14px">
+          <div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.08em;margin-bottom:10px;text-transform:uppercase">P&L par heure</div>
+          <div id="rp-hour-bars" style="display:flex;align-items:flex-end;gap:2px;height:100px;overflow:hidden"></div>
+        </div>
+      </div>
+
+      <!-- Tableau des trades -->
+      <div class="chart-card" style="padding:14px">
+        <div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.08em;margin-bottom:12px;text-transform:uppercase">Trades</div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border);color:var(--text3);text-align:left">
+                <th style="padding:6px 8px;font-weight:600">Symbole</th>
+                <th style="padding:6px 8px;font-weight:600">Qté</th>
+                <th style="padding:6px 8px;font-weight:600">Prix achat</th>
+                <th style="padding:6px 8px;font-weight:600">Heure achat</th>
+                <th style="padding:6px 8px;font-weight:600">Prix vente</th>
+                <th style="padding:6px 8px;font-weight:600">Heure vente</th>
+                <th style="padding:6px 8px;font-weight:600">Durée</th>
+                <th style="padding:6px 8px;font-weight:600;text-align:right">P&L</th>
+              </tr>
+            </thead>
+            <tbody id="rp-trade-rows"></tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
 
     <!-- SETTINGS -->
@@ -916,6 +1024,7 @@ function showPage(id,el){
   if(id==='journal')renderJour();
   if(id==='analytics')renderAna();
   if(id==='calendar')renderCal();
+  if(id==='reports')renderReports();
 }
 function setTab(el){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');}
 
@@ -2036,8 +2145,146 @@ function hideCalTip(){ document.getElementById('cal-tooltip').style.display='non
 renderAll();renderCal();initPropFirms();
 
 
-// Logout button
-document.getElementById('logout-btn').addEventListener('click', doLogout);
+// ── RAPPORTS ───────────────────────────────────────────
+let rpFilter = 'all';
+
+function setReportFilter(f, btn){
+  rpFilter = f;
+  document.querySelectorAll('.rp-filter').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderReports();
+}
+
+function getReportTrades(){
+  const now = new Date();
+  const today = now.toISOString().slice(0,10);
+  const weekAgo = new Date(now - 7*86400000).toISOString().slice(0,10);
+  const monthAgo = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0,10);
+  const from = document.getElementById('rp-from')?.value;
+  const to   = document.getElementById('rp-to')?.value;
+  return T.filter(t => {
+    if(rpFilter==='today')  return t.date === today;
+    if(rpFilter==='week')   return t.date >= weekAgo;
+    if(rpFilter==='month')  return t.date >= monthAgo;
+    if(rpFilter==='custom') return (!from||t.date>=from) && (!to||t.date<=to);
+    return true;
+  });
+}
+
+function std(arr){ if(!arr.length) return 0; const m=arr.reduce((a,b)=>a+b,0)/arr.length; return Math.sqrt(arr.reduce((a,b)=>a+(b-m)**2,0)/arr.length); }
+
+function renderReports(){
+  const trades = getReportTrades();
+  const wins  = trades.filter(t=>t.pnl>0);
+  const losses = trades.filter(t=>t.pnl<=0);
+  const gross = trades.reduce((s,t)=>s+t.pnl,0);
+  const totalWin = wins.reduce((s,t)=>s+t.pnl,0);
+  const totalLoss = losses.reduce((s,t)=>s+t.pnl,0);
+  const avgWin  = wins.length  ? totalWin/wins.length   : 0;
+  const avgLoss = losses.length? totalLoss/losses.length: 0;
+  const wr = trades.length ? wins.length/trades.length : 0;
+  const exp = wr*avgWin + (1-wr)*avgLoss;
+  const nContracts = trades.reduce((s,t)=>s+(t.qty||1),0);
+  const bestTrade  = wins.length   ? Math.max(...wins.map(t=>t.pnl))    : 0;
+  const worstTrade = losses.length ? Math.min(...losses.map(t=>t.pnl))  : 0;
+  const maxRunup   = bestTrade;
+  let maxDD = 0, peak = 0, cum = 0;
+  [...trades].sort((a,b)=>a.date.localeCompare(b.date)).forEach(t=>{
+    cum += t.pnl; if(cum>peak) peak=cum;
+    const dd = peak-cum; if(dd>maxDD) maxDD=dd;
+  });
+
+  // Mise à jour stats
+  const s = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  s('rp-gross',    fmt(gross));
+  s('rp-ntrades',  trades.length);
+  s('rp-ncontracts', nContracts);
+  s('rp-winpct',   (wr*100).toFixed(1)+'%');
+  s('rp-exp',      fmt(exp));
+  s('rp-fees',     '-$0.00');
+  s('rp-net',      fmt(gross));
+  s('rp-avgdur',   '—');
+  s('rp-maxdur',   '—');
+  s('rp-totalwin', fmt(totalWin));
+  s('rp-nwin',     wins.length);
+  s('rp-nconwin',  wins.reduce((a,t)=>a+(t.qty||1),0));
+  s('rp-besttrade',fmt(bestTrade));
+  s('rp-avgwin',   fmt(avgWin));
+  s('rp-stdwin',   '$'+std(wins.map(t=>t.pnl)).toFixed(2));
+  s('rp-maxrunup', fmt(maxRunup));
+  s('rp-totalloss',fmt(totalLoss));
+  s('rp-nloss',    losses.length);
+  s('rp-nconloss', losses.reduce((a,t)=>a+(t.qty||1),0));
+  s('rp-worsttrade',fmt(worstTrade));
+  s('rp-avgloss',  fmt(avgLoss));
+  s('rp-stdloss',  '$'+std(losses.map(t=>t.pnl)).toFixed(2));
+  s('rp-maxdd',    '-$'+maxDD.toFixed(2));
+
+  // Donut win/loss
+  const circ = 2*Math.PI*54;
+  const dash = circ * wr;
+  const pieWin = document.getElementById('rp-pie-win');
+  if(pieWin){ pieWin.setAttribute('stroke-dasharray', `${dash.toFixed(1)} ${(circ-dash).toFixed(1)}`); }
+  s('rp-pie-pct',   (wr*100).toFixed(0)+'%');
+  s('rp-pie-wlabel', wins.length+'W');
+  s('rp-pie-llabel', losses.length+'L');
+
+  // P&L History barres par jour
+  const byDay={};
+  trades.forEach(t=>{ if(!byDay[t.date]) byDay[t.date]=0; byDay[t.date]+=t.pnl; });
+  const days=Object.keys(byDay).sort().slice(-20);
+  const barsEl=document.getElementById('rp-pnl-bars');
+  if(barsEl){
+    const ma=Math.max(1,...days.map(d=>Math.abs(byDay[d])));
+    barsEl.innerHTML = days.map(d=>{
+      const v=byDay[d], h=Math.max(4,Math.round(Math.abs(v)/ma*90));
+      const c=v>=0?'var(--accent)':'var(--red)';
+      const label=d.slice(5).replace('-','/');
+      return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;min-width:0" title="${label}: ${fmt(v)}">
+        <div style="width:100%;max-width:24px;height:${h}px;background:${c};border-radius:3px 3px 0 0;opacity:.85"></div>
+        <div style="font-size:9px;color:var(--text3);margin-top:2px;writing-mode:vertical-rl;transform:rotate(180deg);max-height:30px;overflow:hidden">${label}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // P&L par heure
+  const byHour={};
+  for(let h=6;h<=22;h++) byHour[h]=0;
+  trades.forEach(t=>{ const h=parseInt((t.time||'09:30').split(':')[0]); if(byHour[h]!==undefined) byHour[h]+=t.pnl; });
+  const hrEl=document.getElementById('rp-hour-bars');
+  if(hrEl){
+    const hours=Object.keys(byHour).map(Number).sort((a,b)=>a-b);
+    const ma2=Math.max(1,...hours.map(h=>Math.abs(byHour[h])));
+    hrEl.innerHTML = hours.map(h=>{
+      const v=byHour[h], hh=Math.max(2,Math.round(Math.abs(v)/ma2*90));
+      const c=v>0?'var(--accent)':v<0?'var(--red)':'var(--border)';
+      return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;min-width:0" title="${h}h: ${fmt(v)}">
+        <div style="width:100%;max-width:18px;height:${hh}px;background:${c};border-radius:3px 3px 0 0;opacity:.85"></div>
+        <div style="font-size:9px;color:var(--text3);margin-top:2px">${h}h</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Tableau trades
+  const tbody = document.getElementById('rp-trade-rows');
+  if(tbody){
+    const sorted = [...trades].sort((a,b)=>b.date.localeCompare(a.date));
+    tbody.innerHTML = sorted.map(t=>{
+      const c = t.pnl>=0?'var(--accent)':'var(--red)';
+      return `<tr style="border-bottom:1px solid var(--border);transition:background .15s" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+        <td style="padding:8px;font-family:var(--mono);font-weight:700">${t.sym||'—'}</td>
+        <td style="padding:8px;font-family:var(--mono)">${t.qty||1}</td>
+        <td style="padding:8px;font-family:var(--mono)">${t.entry?'$'+t.entry.toFixed(2):'—'}</td>
+        <td style="padding:8px;color:var(--text2)">${t.date} ${t.time||''}</td>
+        <td style="padding:8px;font-family:var(--mono)">${t.exit?'$'+t.exit.toFixed(2):'—'}</td>
+        <td style="padding:8px;color:var(--text2)">—</td>
+        <td style="padding:8px;color:var(--text3)">—</td>
+        <td style="padding:8px;font-family:var(--mono);font-weight:700;color:${c};text-align:right">${fmtTrade(t)}</td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="8" style="padding:20px;text-align:center;color:var(--text3)">Aucun trade sur cette période</td></tr>`;
+  }
+}
+// ──────────────────────────────────────────────────────
 
 // ── CONVERTISSEUR MANUEL ───────────────────────────────
 let convDebounce = null;
