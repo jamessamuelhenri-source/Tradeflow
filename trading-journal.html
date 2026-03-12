@@ -668,6 +668,20 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
       </div>
 
       <div class="form-group">
+        <label>Type de compte</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button id="q-type-funded" onclick="setQType('Funded')" type="button"
+            style="padding:10px;border-radius:10px;border:2px solid var(--accent);background:var(--accent-dim);color:var(--accent);font-weight:700;font-size:13px;cursor:pointer">
+            🟢 Funded
+          </button>
+          <button id="q-type-challenge" onclick="setQType('Challenge')" type="button"
+            style="padding:10px;border-radius:10px;border:2px solid var(--border);background:var(--bg3);color:var(--text3);font-weight:700;font-size:13px;cursor:pointer">
+            🔵 Challenge
+          </button>
+        </div>
+      </div>
+
+      <div class="form-group">
         <label>Prop Firm</label>
         <select id="q-firm" style="font-size:14px" onchange="toggleCustomFirm('q')">
           <option value="">— Sélectionner —</option>
@@ -715,6 +729,98 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
   </div>
 </div>
 
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="edit-modal" onclick="if(event.target===this)closeEdit()">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title"><span>✏️ Modifier le trade</span><span class="modal-close" onclick="closeEdit()">✕</span></div>
+    <div style="display:flex;flex-direction:column;gap:14px;padding:4px 0">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-group">
+          <label>P&L ($)</label>
+          <input type="number" id="e-pnl" step="0.01" style="font-size:20px;font-weight:800;color:var(--accent);text-align:center">
+        </div>
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" id="e-date">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Type de compte</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button id="e-type-funded" onclick="setEType('Funded')" type="button"
+            style="padding:10px;border-radius:10px;border:2px solid var(--accent);background:var(--accent-dim);color:var(--accent);font-weight:700;font-size:13px;cursor:pointer">
+            🟢 Funded
+          </button>
+          <button id="e-type-challenge" onclick="setEType('Challenge')" type="button"
+            style="padding:10px;border-radius:10px;border:2px solid var(--border);background:var(--bg3);color:var(--text3);font-weight:700;font-size:13px;cursor:pointer">
+            🔵 Challenge
+          </button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Prop Firm</label>
+        <select id="e-firm" style="font-size:14px" onchange="toggleCustomFirm('e')">
+          <option value="">— Sélectionner —</option>
+          <option>Apex Trader Funding</option>
+          <option>Take Profit Trader</option>
+          <option>Lucid Trading</option>
+          <option>Topstep</option>
+          <option>Bulenox</option>
+          <option>Earn2Trade</option>
+          <option>Leeloo Trading</option>
+          <option>TickTick Trader</option>
+          <option>TradeDay</option>
+          <option>Elite Trader Funding</option>
+          <option>FTMO</option>
+          <option>FundedNext</option>
+          <option>The5ers</option>
+          <option>MyForexFunds</option>
+          <option>True Forex Funds</option>
+          <option>Compte personnel</option>
+          <option>Autre</option>
+        </select>
+        <input type="text" id="e-firm-custom" placeholder="Nom de votre prop firm..." style="display:none;margin-top:8px;width:100%;padding:10px 14px;border-radius:10px;border:1px solid var(--accent);background:var(--bg3);color:var(--text);font-size:14px;outline:none;box-sizing:border-box">
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-group">
+          <label>Symbole</label>
+          <input type="text" id="e-sym" placeholder="MNQ, ES, NQ...">
+        </div>
+        <div class="form-group">
+          <label>Numéro de compte</label>
+          <input type="text" id="e-account" placeholder="PA12345...">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Notes</label>
+        <input type="text" id="e-notes" placeholder="Notes libres...">
+      </div>
+
+      <div class="form-group">
+        <label>Tags (séparés par virgule)</label>
+        <input type="text" id="e-tags" placeholder="journalier, scalp...">
+      </div>
+
+      <div class="form-group">
+        <label>Note ⭐</label>
+        <div style="display:flex;gap:6px" id="e-stars">
+          ${[1,2,3,4,5].map(i=>`<span onclick="setEStar(${i})" style="font-size:24px;cursor:pointer;color:var(--text3)" id="e-star-${i}">★</span>`).join('')}
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeEdit()">Annuler</button>
+      <button class="btn btn-primary" style="flex:2" onclick="saveEdit()">✓ Sauvegarder</button>
+    </div>
+  </div>
+</div>
 
 <!-- TRADE MODAL — Détaillé -->
 <div class="modal-overlay" id="trade-modal" onclick="if(event.target===this)closeTrade()">
@@ -1139,12 +1245,27 @@ function getFirm(prefix){
   return sel.value === 'Autre' ? (custom.value.trim()||'Autre') : (sel.value||'Compte personnel');
 }
 let qMood = 'neutral';
+let qType = 'Funded';
+function setQType(t){
+  qType = t;
+  const f = document.getElementById('q-type-funded');
+  const c = document.getElementById('q-type-challenge');
+  if(t==='Funded'){
+    f.style.borderColor='var(--accent)'; f.style.background='var(--accent-dim)'; f.style.color='var(--accent)';
+    c.style.borderColor='var(--border)';  c.style.background='var(--bg3)';        c.style.color='var(--text3)';
+  } else {
+    c.style.borderColor='#4a9eff'; c.style.background='rgba(74,158,255,0.15)'; c.style.color='#4a9eff';
+    f.style.borderColor='var(--border)'; f.style.background='var(--bg3)';       f.style.color='var(--text3)';
+  }
+}
 function openQuick(){
   document.getElementById('quick-modal').classList.add('open');
   document.getElementById('q-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('q-pnl').value = '';
   document.getElementById('q-firm').value = '';
   document.getElementById('q-sym').value = '';
+  qType = 'Funded';
+  setQType('Funded');
 }
 function closeQuick(){ document.getElementById('quick-modal').classList.remove('open'); }
 function qSetMood(m){
@@ -1165,7 +1286,7 @@ async function saveQuick(){
   const tradeCurrency = 'USD';
   if(!date || isNaN(pnlRaw)){ toast('❌ Montant et date requis'); return; }
 
-  const firmLabel = firm + (account ? ' · ' + account : '');
+  const firmLabel = firm + (account ? ' · ' + account : '') + ' [' + qType + ']';
   const note = `[CUR:${tradeCurrency}]` + (account ? ` | Compte: ${account}` : '');
 
   const trade = {
@@ -2023,10 +2144,17 @@ function drawTable(id){
     const stars=Array.from({length:5},(_,i)=>`<span class="star${i<t.rating?' filled':''}">★</span>`).join('');
     const tags=t.tags&&t.tags.length?t.tags.map(g=>`<span class="tag">${g}</span>`).join(''):'—';
     const firm = t.strat||'—';
+    // Extraire le type [Funded] ou [Challenge] du strat
+    const typeMatch = firm.match(/\[(Funded|Challenge)\]/);
+    const typeLabel = typeMatch ? typeMatch[1] : null;
+    const firmClean = firm.replace(/\s*\[(Funded|Challenge)\]/, '');
+    const typeBadge = typeLabel
+      ? `<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;margin-left:4px;${typeLabel==='Funded'?'background:rgba(0,229,160,0.15);color:var(--accent)':'background:rgba(74,158,255,0.15);color:#4a9eff'}">${typeLabel}</span>`
+      : '';
     const symDisplay = t.sym && t.sym !== firm ? t.sym : '—';
     const notes = t.notes ? t.notes.replace(/\[CUR:\w+\]\s*\|?\s*/g,'').replace(/\|?\s*Compte:[^|]*/g,'').trim()||'—' : '—';
     return`<tr>
-      <td style="font-size:12px;color:var(--text);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${firm}</td>
+      <td style="font-size:12px;color:var(--text);max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${firmClean}${typeBadge}</td>
       <td style="font-family:var(--mono);font-weight:700;color:var(--accent)">${symDisplay}</td>
       <td style="font-family:var(--mono)">${t.date}</td>
       <td><span class="${t.pnl>=0?'pnl-pos':'pnl-neg'}">${fmtTrade(t)}</span></td>
@@ -2034,7 +2162,8 @@ function drawTable(id){
       <td style="font-size:11px;color:var(--text3);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${t.notes||''}">${notes}</td>
       <td>${tags}</td>
       <td><div class="rating">${stars}</div></td>
-      <td><button onclick="delTrade(${t.id})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px">🗑</button></td>
+      <td><button onclick="delTrade(${t.id})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px">🗑</button>
+      <button onclick="openEditTrade(${t.id})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px">✏️</button></td>
     </tr>`;
   }).join('');
   w.innerHTML=`<table><thead><tr><th>Prop Firm</th><th>Symbole</th><th>Date</th><th>P&L</th><th>%</th><th>Notes</th><th>Tags</th><th>Note</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
@@ -2475,6 +2604,116 @@ function applyPhoto(url){
   localStorage.setItem('tf_photo_url', url);
 }
 let convDebounce = null;
+
+// ── EDIT MODAL ─────────────────────────────────────────
+let editId = null;
+let eType = 'Funded';
+let eStar = 3;
+
+function setEType(t){
+  eType = t;
+  const f = document.getElementById('e-type-funded');
+  const c = document.getElementById('e-type-challenge');
+  if(t==='Funded'){
+    f.style.borderColor='var(--accent)'; f.style.background='var(--accent-dim)'; f.style.color='var(--accent)';
+    c.style.borderColor='var(--border)';  c.style.background='var(--bg3)';        c.style.color='var(--text3)';
+  } else {
+    c.style.borderColor='#4a9eff'; c.style.background='rgba(74,158,255,0.15)'; c.style.color='#4a9eff';
+    f.style.borderColor='var(--border)'; f.style.background='var(--bg3)'; f.style.color='var(--text3)';
+  }
+}
+
+function setEStar(n){
+  eStar = n;
+  [1,2,3,4,5].forEach(i=>{
+    const s = document.getElementById('e-star-'+i);
+    if(s) s.style.color = i<=n ? 'var(--yellow)' : 'var(--text3)';
+  });
+}
+
+function openEditTrade(id){
+  const t = T.find(x=>x.id===id);
+  if(!t) return;
+  editId = id;
+
+  document.getElementById('e-pnl').value  = t.pnl;
+  document.getElementById('e-date').value = t.date;
+  document.getElementById('e-sym').value  = (t.sym && t.sym !== t.strat) ? t.sym : '';
+  document.getElementById('e-notes').value = (t.notes||'').replace(/\[CUR:\w+\]\s*\|?\s*/g,'').replace(/\|?\s*Compte:[^|]*/g,'').replace(/\|\s*/g,'').trim();
+  document.getElementById('e-tags').value  = (t.tags||[]).join(', ');
+
+  // Type Funded/Challenge
+  const typeMatch = (t.strat||'').match(/\[(Funded|Challenge)\]/);
+  eType = typeMatch ? typeMatch[1] : 'Funded';
+  setEType(eType);
+
+  // Prop Firm (sans le compte et sans le type)
+  const firmClean = (t.strat||'').replace(/\s*\[(Funded|Challenge)\]/,'').replace(/\s*·\s*.+$/,'').trim();
+  const sel = document.getElementById('e-firm');
+  const opts = Array.from(sel.options).map(o=>o.value);
+  if(opts.includes(firmClean)){
+    sel.value = firmClean;
+    document.getElementById('e-firm-custom').style.display='none';
+  } else if(firmClean){
+    sel.value = 'Autre';
+    document.getElementById('e-firm-custom').style.display='block';
+    document.getElementById('e-firm-custom').value = firmClean;
+  }
+
+  // Compte (après le ·)
+  const accountMatch = (t.strat||'').match(/·\s*([^[\]]+?)(?:\s*\[|$)/);
+  document.getElementById('e-account').value = accountMatch ? accountMatch[1].trim() : '';
+
+  // Étoiles
+  eStar = t.rating||3;
+  setEStar(eStar);
+
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function closeEdit(){
+  document.getElementById('edit-modal').classList.remove('open');
+  editId = null;
+}
+
+async function saveEdit(){
+  const t = T.find(x=>x.id===editId);
+  if(!t) return;
+
+  const pnl    = parseFloat(document.getElementById('e-pnl').value);
+  const date   = document.getElementById('e-date').value;
+  const sym    = document.getElementById('e-sym').value.trim().toUpperCase();
+  const notes  = document.getElementById('e-notes').value.trim();
+  const tagsRaw= document.getElementById('e-tags').value.trim();
+  const account= document.getElementById('e-account').value.trim();
+
+  if(isNaN(pnl)||!date){ toast('❌ P&L et date requis'); return; }
+
+  const firmSel  = document.getElementById('e-firm').value;
+  const firmName = firmSel==='Autre' ? (document.getElementById('e-firm-custom').value.trim()||'Autre') : (firmSel||'Compte personnel');
+  const firmLabel= firmName + (account ? ' · '+account : '') + ' ['+eType+']';
+
+  t.pnl    = pnl;
+  t.date   = date;
+  t.sym    = sym || firmLabel;
+  t.strat  = firmLabel;
+  t.notes  = '[CUR:USD]' + (account ? ' | Compte: '+account : '') + (notes ? ' | '+notes : '');
+  t.tags   = tagsRaw ? tagsRaw.split(',').map(s=>s.trim()).filter(Boolean) : [];
+  t.rating = eStar;
+  t.side   = pnl>=0?'LONG':'SHORT';
+
+  save(); renderAll(); closeEdit();
+  toast('✅ Trade modifié !');
+
+  if(currentUser && t.dbId){
+    db.from('trades').update({
+      pnl, date, sym:t.sym, strat:firmLabel,
+      notes:t.notes, tags:t.tags, rating:eStar, side:t.side
+    }).eq('id', t.dbId).then(()=>{});
+  }
+}
+// ── FIN EDIT MODAL ──────────────────────────────────────
+
 async function doConvert(){
   const amount = parseFloat(document.getElementById('conv-amount').value);
   const from   = document.getElementById('conv-from').value;
