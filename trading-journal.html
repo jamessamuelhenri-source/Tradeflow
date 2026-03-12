@@ -480,6 +480,11 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
         <input type="date" id="q-date">
       </div>
 
+      <div class="form-group">
+        <label>Numéro de compte</label>
+        <input type="text" id="q-account" placeholder="ex: PA12345, APEX-001...">
+      </div>
+
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeQuick()">Annuler</button>
@@ -900,21 +905,24 @@ function saveQuick(){
   const date = document.getElementById('q-date').value;
   const pnl  = parseFloat(document.getElementById('q-pnl').value);
   const firm = getFirm('q');
+  const account = document.getElementById('q-account').value.trim();
   if(!date || isNaN(pnl)){ toast('❌ Montant et date requis'); return; }
+  const label = firm + (account ? ' · ' + account : '');
   const trade = {
-    id: Date.now(), sym: firm, side: pnl>=0?'LONG':'SHORT',
+    id: Date.now(), sym: label, side: pnl>=0?'LONG':'SHORT',
     entry: 0, exit: 0, qty: 1, pnl, pnlPct: 0,
-    date, time: '09:30', strat: firm,
-    emotion: '', rating: 3, tags: ['journalier'], notes: ''
+    date, time: '09:30', strat: label,
+    emotion: '', rating: 3, tags: ['journalier'], notes: account ? 'Compte: '+account : ''
   };
   T.push(trade); save(); renderAll(); closeQuick();
+  document.getElementById('q-account').value = '';
   toast('✅ ' + (pnl>=0?'+':'') + pnl.toFixed(2) + '$ enregistré !');
   if(currentUser){
     db.from('trades').insert({
-      user_id:currentUser.id, sym:firm, side:trade.side,
+      user_id:currentUser.id, sym:label, side:trade.side,
       entry:0, exit:0, qty:1, pnl, pnl_pct:0,
-      date, time:'09:30', strat:firm,
-      emotion:'', rating:3, tags:['journalier'], notes:''
+      date, time:'09:30', strat:label,
+      emotion:'', rating:3, tags:['journalier'], notes:trade.notes
     }).select().then(({data})=>{
       if(data && data[0]) trade.id = data[0].id;
     });
