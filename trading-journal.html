@@ -403,6 +403,7 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
               <option>NGN ₦ — Naira nigérian</option>
               <option>EGP £ — Livre égyptienne</option>
               <option>MAD — Dirham marocain</option>
+              <option>MUR Rs — Roupie mauricienne</option>
               <option>XOF — Franc CFA BCEAO</option>
               <option>XAF — Franc CFA BEAC</option>
             </select>
@@ -1732,7 +1733,10 @@ function parseDate(s){
   return null;
 }
 function parseTime(s){if(!s)return'09:30';const m=s.match(/(\d{1,2}):(\d{2})/);return m?`${m[1].padStart(2,'0')}:${m[2]}`:'09:30';}
-function fmt(v){return(v>=0?'+':'')+'$'+Math.abs(v).toFixed(2);}
+function fmt(v){
+  const sym = (localStorage.getItem('tf_currency') || '$');
+  return(v>=0?'+':'-')+sym+Math.abs(v).toFixed(2);
+}
 function toast(m){const t=document.getElementById('toast-el');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
 
 // RENDER
@@ -1969,6 +1973,13 @@ function hideCalTip(){ document.getElementById('cal-tooltip').style.display='non
 
 renderAll();renderCal();initPropFirms();
 
+// Load saved currency
+const savedCurrency = localStorage.getItem('tf_currency_full');
+if(savedCurrency){
+  const sel = document.getElementById('settings-currency');
+  if(sel) Array.from(sel.options).forEach(o=>{ if(o.value===savedCurrency) o.selected=true; });
+}
+
 // Logout button
 document.getElementById('logout-btn').addEventListener('click', doLogout);
 
@@ -1994,6 +2005,16 @@ function handlePhotoUpload(event){
 async function saveProfile(){
   const name = document.getElementById('settings-name').value.trim();
   if(!name){ toast('❌ Nom requis'); return; }
+  // Save currency
+  const currencyEl = document.getElementById('settings-currency');
+  if(currencyEl){
+    const currencyVal = currencyEl.value;
+    // Extract symbol from option text like "EUR € — Euro"
+    const match = currencyVal.match(/([^\s]+)\s+([^\s—]+)/);
+    const sym = match ? match[2] : '$';
+    localStorage.setItem('tf_currency', sym);
+    localStorage.setItem('tf_currency_full', currencyVal);
+  }
   try {
     await db.auth.updateUser({ data: { full_name: name } });
     if(currentUser) await db.from('profiles').update({ full_name: name }).eq('id', currentUser.id);
@@ -2001,6 +2022,7 @@ async function saveProfile(){
     const initials = name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
     document.getElementById('user-avatar').textContent = initials;
     document.getElementById('profile-photo-initials').textContent = initials;
+    renderAll();
     toast('✅ Profil sauvegardé !');
   } catch(e) { toast('❌ Erreur: ' + e.message); }
 }
