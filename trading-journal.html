@@ -206,6 +206,7 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
       <div class="nav-label">Outils</div>
       <div class="nav-item" onclick="showPage('calendar',this)"><span class="icon">📅</span>Calendrier</div>
       <div class="nav-item" onclick="showPage('reports',this)"><span class="icon">🧾</span>Rapports</div>
+      <div class="nav-item" onclick="showPage('converter',this)"><span class="icon">🔄</span>Convertisseur</div>
     </div>
     <div class="nav-section">
       <div class="nav-label">Compte</div>
@@ -448,6 +449,94 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
 
     </div>
 
+    <!-- CONVERTISSEUR -->
+    <div id="page-converter" class="page">
+      <div style="max-width:500px;margin:0 auto;padding-top:20px">
+        <div class="chart-card" style="padding:28px">
+          <div style="text-align:center;margin-bottom:24px">
+            <div style="font-size:36px;margin-bottom:8px">🔄</div>
+            <div style="font-size:18px;font-weight:800;margin-bottom:4px">Convertisseur de devises</div>
+            <div style="font-size:12px;color:var(--text3)">Taux en temps réel</div>
+          </div>
+
+          <!-- Montant -->
+          <div class="form-group" style="margin-bottom:16px">
+            <label>Montant</label>
+            <input type="number" id="conv-amount" placeholder="ex: 1000" step="0.01"
+              style="width:100%;font-size:28px;font-weight:800;text-align:center;padding:16px;color:var(--accent);box-sizing:border-box"
+              oninput="doConvert()">
+          </div>
+
+          <!-- FROM → TO -->
+          <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;margin-bottom:20px">
+            <div>
+              <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:6px">De</label>
+              <select id="conv-from" onchange="doConvert()" style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:14px;font-weight:600">
+                <option value="USD">🇺🇸 USD $</option>
+                <option value="EUR">🇪🇺 EUR €</option>
+                <option value="GBP">🇬🇧 GBP £</option>
+                <option value="CAD">🇨🇦 CAD $</option>
+                <option value="AUD">🇦🇺 AUD $</option>
+                <option value="CHF">🇨🇭 CHF</option>
+                <option value="JPY">🇯🇵 JPY ¥</option>
+                <option value="CNY">🇨🇳 CNY ¥</option>
+                <option value="MUR">🇲🇺 MUR Rs</option>
+                <option value="MXN">🇲🇽 MXN $</option>
+                <option value="BRL">🇧🇷 BRL R$</option>
+                <option value="INR">🇮🇳 INR ₹</option>
+                <option value="ZAR">🇿🇦 ZAR R</option>
+                <option value="AED">🇦🇪 AED</option>
+                <option value="NGN">🇳🇬 NGN ₦</option>
+                <option value="XOF">🌍 XOF</option>
+                <option value="MAD">🇲🇦 MAD</option>
+                <option value="KRW">🇰🇷 KRW ₩</option>
+                <option value="SGD">🇸🇬 SGD $</option>
+                <option value="HKD">🇭🇰 HKD $</option>
+                <option value="NOK">🇳🇴 NOK kr</option>
+                <option value="SEK">🇸🇪 SEK kr</option>
+                <option value="TRY">🇹🇷 TRY ₺</option>
+              </select>
+            </div>
+            <button onclick="swapConvert()" style="background:var(--bg3);border:1px solid var(--border);border-radius:50%;width:40px;height:40px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;margin-top:18px;flex-shrink:0">⇄</button>
+            <div>
+              <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:6px">Vers</label>
+              <select id="conv-to" onchange="doConvert()" style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:14px;font-weight:600">
+                <option value="EUR">🇪🇺 EUR €</option>
+                <option value="USD">🇺🇸 USD $</option>
+                <option value="GBP">🇬🇧 GBP £</option>
+                <option value="CAD">🇨🇦 CAD $</option>
+                <option value="AUD">🇦🇺 AUD $</option>
+                <option value="CHF">🇨🇭 CHF</option>
+                <option value="JPY">🇯🇵 JPY ¥</option>
+                <option value="CNY">🇨🇳 CNY ¥</option>
+                <option value="MUR">🇲🇺 MUR Rs</option>
+                <option value="MXN">🇲🇽 MXN $</option>
+                <option value="BRL">🇧🇷 BRL R$</option>
+                <option value="INR">🇮🇳 INR ₹</option>
+                <option value="ZAR">🇿🇦 ZAR R</option>
+                <option value="AED">🇦🇪 AED</option>
+                <option value="NGN">🇳🇬 NGN ₦</option>
+                <option value="XOF">🌍 XOF</option>
+                <option value="MAD">🇲🇦 MAD</option>
+                <option value="KRW">🇰🇷 KRW ₩</option>
+                <option value="SGD">🇸🇬 SGD $</option>
+                <option value="HKD">🇭🇰 HKD $</option>
+                <option value="NOK">🇳🇴 NOK kr</option>
+                <option value="SEK">🇸🇪 SEK kr</option>
+                <option value="TRY">🇹🇷 TRY ₺</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Résultat -->
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:24px;text-align:center">
+            <div id="conv-result" style="font-size:32px;font-weight:800;color:var(--accent);font-family:var(--mono);min-height:40px">—</div>
+            <div id="conv-rate" style="font-size:12px;color:var(--text3);margin-top:8px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- SETTINGS -->
     <div id="page-settings" class="page">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
@@ -485,55 +574,6 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
             </select>
           </div>
           <button class="btn btn-primary" style="width:100%;margin-bottom:10px" onclick="saveProfile()">Sauvegarder</button>
-
-          <!-- Convertisseur manuel -->
-          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px">
-            <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.05em">🔄 Convertisseur de devises</div>
-            <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
-              <input type="number" id="conv-amount" placeholder="Montant" step="0.01"
-                style="flex:1;min-width:90px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:16px;font-weight:700;box-sizing:border-box"
-                oninput="doConvert()">
-              <select id="conv-from" onchange="doConvert()" style="padding:10px 8px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:13px">
-                <option value="USD">USD $</option>
-                <option value="EUR">EUR €</option>
-                <option value="GBP">GBP £</option>
-                <option value="CAD">CAD $</option>
-                <option value="AUD">AUD $</option>
-                <option value="CHF">CHF</option>
-                <option value="JPY">JPY ¥</option>
-                <option value="MUR">MUR Rs</option>
-                <option value="MXN">MXN $</option>
-                <option value="BRL">BRL R$</option>
-                <option value="INR">INR ₹</option>
-                <option value="ZAR">ZAR R</option>
-                <option value="AED">AED</option>
-                <option value="NGN">NGN ₦</option>
-                <option value="XOF">XOF</option>
-                <option value="MAD">MAD</option>
-              </select>
-              <span style="font-size:18px;color:var(--text3)">→</span>
-              <select id="conv-to" onchange="doConvert()" style="padding:10px 8px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:13px">
-                <option value="EUR">EUR €</option>
-                <option value="USD">USD $</option>
-                <option value="GBP">GBP £</option>
-                <option value="CAD">CAD $</option>
-                <option value="AUD">AUD $</option>
-                <option value="CHF">CHF</option>
-                <option value="JPY">JPY ¥</option>
-                <option value="MUR">MUR Rs</option>
-                <option value="MXN">MXN $</option>
-                <option value="BRL">BRL R$</option>
-                <option value="INR">INR ₹</option>
-                <option value="ZAR">ZAR R</option>
-                <option value="AED">AED</option>
-                <option value="NGN">NGN ₦</option>
-                <option value="XOF">XOF</option>
-                <option value="MAD">MAD</option>
-              </select>
-            </div>
-            <div id="conv-result" style="text-align:center;font-size:26px;font-weight:800;color:var(--accent);font-family:var(--mono);min-height:36px;padding:8px 0">—</div>
-            <div id="conv-rate" style="text-align:center;font-size:11px;color:var(--text3);margin-top:2px"></div>
-          </div>
 
           <!-- Changer mot de passe -->
           <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:4px">
@@ -886,25 +926,9 @@ async function loadProfile(user){
   const photoEl = document.getElementById('profile-photo-initials');
   if(photoEl) photoEl.textContent = initials;
 
-  // Charger photo depuis Supabase ou localStorage
-  function applyPhoto(url){
-    const img = document.getElementById('profile-photo-img');
-    const ini = document.getElementById('profile-photo-initials');
-    const av  = document.getElementById('user-avatar');
-    if(img){ img.src = url; img.style.display='block'; }
-    if(ini) ini.style.display='none';
-    if(av)  av.innerHTML = `<img id="user-avatar-img" src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
-    localStorage.setItem('tf_photo_url', url);
-  }
+  // Charger photo depuis cache ou DB
   const cachedUrl = localStorage.getItem('tf_photo_url');
   if(cachedUrl) applyPhoto(cachedUrl);
-  else {
-    const savedPhoto = localStorage.getItem('tf_photo');
-    if(savedPhoto){
-      const img = document.getElementById('profile-photo-img');
-      if(img){ img.src = savedPhoto; img.style.display='block'; if(photoEl) photoEl.style.display='none'; }
-    }
-  }
 
   // Try to load profile from DB (non-blocking)
   try {
@@ -916,7 +940,7 @@ async function loadProfile(user){
     document.getElementById('plan-free-ui').style.display = isPro ? 'none' : '';
     document.getElementById('plan-pro-ui').style.display  = isPro ? '' : 'none';
 
-    // Charger la photo depuis Supabase si elle existe
+    // Charger la photo depuis Supabase (priorité sur le cache)
     if(data?.avatar_url){
       applyPhoto(data.avatar_url);
     }
@@ -1029,7 +1053,7 @@ function showPage(id,el){
   document.getElementById('page-'+id).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   if(el)el.classList.add('active');
-  const ti={dashboard:'Dashboard',journal:'Journal',analytics:'Analytics',calendar:'Calendrier',reports:'Rapports',settings:'Paramètres'};
+  const ti={dashboard:'Dashboard',journal:'Journal',analytics:'Analytics',calendar:'Calendrier',reports:'Rapports',converter:'Convertisseur',settings:'Paramètres'};
   document.getElementById('page-title').textContent=ti[id]||id;
   if(id==='journal')renderJour();
   if(id==='analytics')renderAna();
@@ -2431,7 +2455,25 @@ function exportReportPDF(){
 }
 // ─────────────────────────────────────────────────────
 
-// ── CONVERTISSEUR MANUEL ───────────────────────────────
+function swapConvert(){
+  const from = document.getElementById('conv-from');
+  const to   = document.getElementById('conv-to');
+  const tmp  = from.value;
+  from.value = to.value;
+  to.value   = tmp;
+  doConvert();
+}
+
+function applyPhoto(url){
+  if(!url) return;
+  const img = document.getElementById('profile-photo-img');
+  const ini = document.getElementById('profile-photo-initials');
+  const av  = document.getElementById('user-avatar');
+  if(img){ img.src = url; img.style.display='block'; }
+  if(ini) ini.style.display='none';
+  if(av)  av.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+  localStorage.setItem('tf_photo_url', url);
+}
 let convDebounce = null;
 async function doConvert(){
   const amount = parseFloat(document.getElementById('conv-amount').value);
