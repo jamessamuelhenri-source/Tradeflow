@@ -364,13 +364,48 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
             <label>Email</label>
             <input type="text" id="settings-email" readonly style="opacity:0.6;cursor:default">
           </div>
-          <div class="form-group" style="margin-bottom:12px">
-            <label>Capital de départ ($)</label>
-            <input type="number" id="cap-input" value="10000" onchange="updateCap(this.value)">
-          </div>
           <div class="form-group" style="margin-bottom:16px">
             <label>Devise</label>
-            <select><option>USD $</option><option>EUR €</option><option>GBP £</option></select>
+            <select id="settings-currency">
+              <option>USD $ — Dollar américain</option>
+              <option>EUR € — Euro</option>
+              <option>GBP £ — Livre sterling</option>
+              <option>CAD $ — Dollar canadien</option>
+              <option>AUD $ — Dollar australien</option>
+              <option>CHF — Franc suisse</option>
+              <option>JPY ¥ — Yen japonais</option>
+              <option>CNY ¥ — Yuan chinois</option>
+              <option>HKD $ — Dollar de Hong Kong</option>
+              <option>SGD $ — Dollar de Singapour</option>
+              <option>NZD $ — Dollar néo-zélandais</option>
+              <option>MXN $ — Peso mexicain</option>
+              <option>BRL R$ — Réal brésilien</option>
+              <option>INR ₹ — Roupie indienne</option>
+              <option>KRW ₩ — Won sud-coréen</option>
+              <option>NOK kr — Couronne norvégienne</option>
+              <option>SEK kr — Couronne suédoise</option>
+              <option>DKK kr — Couronne danoise</option>
+              <option>ZAR R — Rand sud-africain</option>
+              <option>AED د.إ — Dirham des EAU</option>
+              <option>SAR ﷼ — Riyal saoudien</option>
+              <option>TRY ₺ — Livre turque</option>
+              <option>RUB ₽ — Rouble russe</option>
+              <option>PLN zł — Zloty polonais</option>
+              <option>CZK Kč — Couronne tchèque</option>
+              <option>HUF Ft — Forint hongrois</option>
+              <option>RON lei — Leu roumain</option>
+              <option>ILS ₪ — Shekel israélien</option>
+              <option>THB ฿ — Baht thaïlandais</option>
+              <option>MYR RM — Ringgit malaisien</option>
+              <option>IDR Rp — Roupie indonésienne</option>
+              <option>PHP ₱ — Peso philippin</option>
+              <option>VND ₫ — Dong vietnamien</option>
+              <option>NGN ₦ — Naira nigérian</option>
+              <option>EGP £ — Livre égyptienne</option>
+              <option>MAD — Dirham marocain</option>
+              <option>XOF — Franc CFA BCEAO</option>
+              <option>XAF — Franc CFA BEAC</option>
+            </select>
           </div>
           <button class="btn btn-primary" style="width:100%;margin-bottom:10px" onclick="saveProfile()">Sauvegarder</button>
 
