@@ -289,7 +289,38 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
 
     <!-- CALENDAR -->
     <div id="page-calendar" class="page">
-      <div class="chart-card"><div class="chart-header"><div class="chart-title">Calendrier — <span id="cal-lbl">Mars 2026</span></div><div style="display:flex;gap:8px"><button class="btn btn-ghost" onclick="cm(-1)">‹</button><button class="btn btn-ghost" onclick="cm(1)">›</button></div></div><div id="cal-grid" style="margin-top:8px"></div></div>
+      <div class="chart-card" style="padding:0;overflow:hidden">
+        <!-- Header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)">
+          <div style="display:flex;align-items:center;gap:12px">
+            <button class="btn btn-ghost" onclick="cm(-1)" style="padding:4px 10px">‹</button>
+            <div style="font-size:16px;font-weight:700;min-width:140px;text-align:center" id="cal-lbl">Mars 2026</div>
+            <button class="btn btn-ghost" onclick="cm(1)" style="padding:4px 10px">›</button>
+            <button class="btn btn-ghost" onclick="calGoToday()" style="font-size:11px">Aujourd'hui</button>
+          </div>
+          <div style="display:flex;gap:24px;align-items:center">
+            <div style="font-size:13px;color:var(--text3)">Stats mensuelles : <span id="cal-monthly-pnl" style="color:var(--accent);font-weight:700;font-family:var(--mono)">$0.00</span></div>
+            <div style="font-size:13px;color:var(--text3)"><span id="cal-monthly-days" style="color:var(--text1);font-weight:700">0</span> jours tradés</div>
+          </div>
+        </div>
+        <!-- Calendar body -->
+        <div style="display:flex">
+          <!-- Main grid -->
+          <div style="flex:1;padding:16px">
+            <div id="cal-grid"></div>
+          </div>
+          <!-- Weekly stats -->
+          <div style="width:160px;border-left:1px solid var(--border);padding:16px;display:flex;flex-direction:column;gap:0" id="cal-weeks"></div>
+        </div>
+        <!-- Legend -->
+        <div style="display:flex;gap:20px;align-items:center;padding:10px 20px;border-top:1px solid var(--border)">
+          <div style="display:flex;align-items:center;gap:6px"><div style="width:12px;height:12px;border-radius:3px;background:rgba(255,77,109,.3)"></div><span style="font-size:11px;color:var(--text3)">Perte</span></div>
+          <div style="display:flex;align-items:center;gap:6px"><div style="width:12px;height:12px;border-radius:3px;background:var(--bg3);border:1px solid var(--border)"></div><span style="font-size:11px;color:var(--text3)">Aucun trade</span></div>
+          <div style="display:flex;align-items:center;gap:6px"><div style="width:12px;height:12px;border-radius:3px;background:rgba(0,229,160,.3)"></div><span style="font-size:11px;color:var(--text3)">Profit</span></div>
+        </div>
+      </div>
+      <!-- Tooltip -->
+      <div id="cal-tooltip" style="position:fixed;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:12px 16px;font-size:12px;pointer-events:none;display:none;z-index:9999;min-width:180px;box-shadow:0 8px 24px rgba(0,0,0,.4)"></div>
     </div>
 
     <!-- REPORTS -->
@@ -1720,25 +1751,134 @@ function renderAna(){
 }
 
 function cm(d){calM+=d;if(calM>11){calM=0;calY++;}if(calM<0){calM=11;calY--;}renderCal();}
+function calGoToday(){ calM=new Date().getMonth(); calY=new Date().getFullYear(); renderCal(); }
+
 function renderCal(){
   const months=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
   document.getElementById('cal-lbl').textContent=`${months[calM]} ${calY}`;
-  const bd={};T.forEach(t=>{if(!bd[t.date])bd[t.date]=0;bd[t.date]+=t.pnl;});
-  const fd=new Date(calY,calM,1).getDay(),dim=new Date(calY,calM+1,0).getDate(),days=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
-  let html=`<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:8px">`;
-  days.forEach(d=>html+=`<div style="text-align:center;font-size:11px;color:var(--text3);font-family:var(--mono);padding:6px">${d}</div>`);
-  html+=`</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px">`;
-  for(let i=0;i<fd;i++)html+=`<div></div>`;
+
+  // Build daily data
+  const bd={};
+  T.forEach(t=>{
+    if(!bd[t.date]) bd[t.date]={pnl:0,trades:[]};
+    bd[t.date].pnl += t.pnl;
+    bd[t.date].trades.push(t);
+  });
+
+  // Monthly stats
+  const monthPfx=`${calY}-${String(calM+1).padStart(2,'0')}`;
+  let monthPnl=0, monthDays=0;
+  Object.keys(bd).forEach(d=>{
+    if(d.startsWith(monthPfx)){ monthPnl+=bd[d].pnl; monthDays++; }
+  });
+  const mpEl=document.getElementById('cal-monthly-pnl');
+  mpEl.textContent=fmt(monthPnl);
+  mpEl.style.color=monthPnl>=0?'var(--accent)':'var(--red)';
+  document.getElementById('cal-monthly-days').textContent=monthDays;
+
+  const fd=new Date(calY,calM,1).getDay(); // 0=Sun
+  const fdMon=(fd+6)%7; // shift to Mon start
+  const dim=new Date(calY,calM+1,0).getDate();
+  const days=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+  const today=new Date().toISOString().split('T')[0];
+
+  // Grid
+  let html=`<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:6px">`;
+  days.forEach(d=>html+=`<div style="text-align:center;font-size:11px;color:var(--text3);padding:4px;font-family:var(--mono)">${d}</div>`);
+  html+=`</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">`;
+  for(let i=0;i<fdMon;i++) html+=`<div style="min-height:70px"></div>`;
+
+  // Track weeks for sidebar
+  const weeks=[];
+  let wPnl=0, wDays=0, wNum=1;
+  let dayOfWeek=fdMon;
+
   for(let d=1;d<=dim;d++){
     const ds=`${calY}-${String(calM+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const pnl=bd[ds];const today=ds===new Date().toISOString().split('T')[0];
+    const dayData=bd[ds];
+    const pnl=dayData?.pnl;
+    const isToday=ds===today;
     let bg='var(--bg3)',c='var(--text2)',bdr='1px solid var(--border)';
-    if(pnl!==undefined){bg=pnl>0?'rgba(0,229,160,.15)':'rgba(255,77,109,.15)';c=pnl>0?'var(--accent)':'var(--red)';bdr=pnl>0?'1px solid rgba(0,229,160,.4)':'1px solid rgba(255,77,109,.4)';}
-    if(today)bdr='1px solid var(--blue)';
-    html+=`<div style="background:${bg};border:${bdr};border-radius:8px;padding:8px;min-height:60px"><div style="font-size:12px;color:${c};font-weight:600">${d}</div>${pnl!==undefined?`<div style="font-size:9px;font-family:var(--mono);color:${c};margin-top:2px">${fmt(pnl)}</div>`:''}</div>`;
+    if(pnl!==undefined){
+      bg=pnl>=0?'rgba(0,229,160,.18)':'rgba(255,77,109,.18)';
+      c=pnl>=0?'var(--accent)':'var(--red)';
+      bdr=pnl>=0?'1px solid rgba(0,229,160,.5)':'1px solid rgba(255,77,109,.5)';
+      wPnl+=pnl; wDays++;
+    }
+    if(isToday) bdr='2px solid var(--blue)';
+
+    // Prop firms breakdown for tooltip
+    let firmLines='';
+    if(dayData?.trades){
+      const firms={};
+      dayData.trades.forEach(t=>{
+        const f=t.strat||t.sym||'Autre';
+        if(!firms[f]) firms[f]=0;
+        firms[f]+=t.pnl;
+      });
+      firmLines=Object.entries(firms).map(([f,p])=>
+        `<div style="display:flex;justify-content:space-between;gap:16px;margin-top:4px">
+          <span style="color:var(--text2)">${f}</span>
+          <span style="color:${p>=0?'var(--accent)':'var(--red)'};font-family:var(--mono)">${fmt(p)}</span>
+        </div>`
+      ).join('');
+    }
+
+    const tooltipData = pnl!==undefined ? `data-tip="${ds}|${fmt(pnl)}|${dayData.trades.length}|${encodeURIComponent(firmLines)}"` : '';
+
+    html+=`<div ${tooltipData} onmouseenter="showCalTip(event,this)" onmouseleave="hideCalTip()"
+      style="background:${bg};border:${bdr};border-radius:8px;padding:8px;min-height:70px;cursor:${pnl!==undefined?'pointer':'default'};transition:opacity .15s">
+      <div style="font-size:12px;color:${isToday?'var(--blue)':c};font-weight:${isToday?'800':'600'}">${d}</div>
+      ${pnl!==undefined?`<div style="font-size:10px;font-family:var(--mono);color:${c};margin-top:4px;font-weight:600">${fmt(pnl)}</div>
+      <div style="font-size:9px;color:var(--text3);margin-top:2px">${dayData.trades.length} trade${dayData.trades.length>1?'s':''}</div>`:''}
+    </div>`;
+
+    dayOfWeek++;
+    if(dayOfWeek===7 || d===dim){
+      weeks.push({num:wNum, pnl:wPnl, days:wDays});
+      wPnl=0; wDays=0; wNum++; dayOfWeek=0;
+    }
   }
-  html+=`</div>`;document.getElementById('cal-grid').innerHTML=html;
+  html+=`</div>`;
+  document.getElementById('cal-grid').innerHTML=html;
+
+  // Weekly sidebar
+  let wHtml='<div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:12px;text-transform:uppercase;letter-spacing:.05em">Semaines</div>';
+  weeks.forEach(w=>{
+    const c=w.pnl>=0?'var(--accent)':'var(--red)';
+    wHtml+=`<div style="padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:10px;color:var(--text3);margin-bottom:2px">Semaine ${w.num}</div>
+      <div style="font-size:13px;font-family:var(--mono);font-weight:700;color:${w.days>0?c:'var(--text3)'}">${w.days>0?fmt(w.pnl):'$0.00'}</div>
+      <div style="font-size:10px;color:var(--text3)">${w.days} jour${w.days>1?'s':''}</div>
+    </div>`;
+  });
+  document.getElementById('cal-weeks').innerHTML=wHtml;
 }
+
+function showCalTip(e, el){
+  const tip=document.getElementById('cal-tooltip');
+  const raw=el.getAttribute('data-tip');
+  if(!raw) return;
+  const [date, pnl, count, firms]=raw.split('|');
+  const c=pnl.startsWith('-')?'var(--red)':'var(--accent)';
+  tip.innerHTML=`
+    <div style="font-weight:700;margin-bottom:6px;color:var(--text1)">${date}</div>
+    <div style="display:flex;justify-content:space-between;gap:16px">
+      <span style="color:var(--text3)">P&L Total</span>
+      <span style="color:${c};font-family:var(--mono);font-weight:700">${pnl}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;gap:16px;margin-top:4px">
+      <span style="color:var(--text3)">Trades</span>
+      <span style="color:var(--text1)">${count}</span>
+    </div>
+    ${firms?'<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">'+decodeURIComponent(firms)+'</div>':''}
+  `;
+  tip.style.display='block';
+  const x=e.clientX+12, y=e.clientY-10;
+  tip.style.left=Math.min(x, window.innerWidth-200)+'px';
+  tip.style.top=y+'px';
+}
+function hideCalTip(){ document.getElementById('cal-tooltip').style.display='none'; }
 
 renderAll();renderCal();initPropFirms();
 
