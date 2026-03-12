@@ -999,16 +999,16 @@ async function saveQuick(){
   const tradeCurrency = document.getElementById('q-currency').value || 'USD';
   if(!date || isNaN(pnlRaw)){ toast('❌ Montant et date requis'); return; }
 
-  // Convert to USD for storage (base currency)
-  const rateFrom = FX_RATES[tradeCurrency] || 1;
-  const pnlUSD = pnlRaw / rateFrom;
-
   const label = firm + (account ? ' · ' + account : '');
-  const note = `Devise: ${tradeCurrency} | Montant original: ${pnlRaw}` + (account ? ` | Compte: ${account}` : '');
+  // Stocker le montant original + devise dans notes
+  const note = `[CUR:${tradeCurrency}]` + (account ? ` | Compte: ${account}` : '');
 
   const trade = {
     id: Date.now(), sym: label, side: pnlRaw>=0?'LONG':'SHORT',
-    entry: 0, exit: 0, qty: 1, pnl: pnlUSD, pnlPct: 0,
+    entry: 0, exit: 0, qty: 1,
+    pnl: pnlRaw,        // montant original, pas de conversion
+    pnlCurrency: tradeCurrency,  // devise du trade
+    pnlPct: 0,
     date, time: '09:30', strat: label,
     emotion: '', rating: 3, tags: ['journalier'], notes: note
   };
@@ -1019,7 +1019,7 @@ async function saveQuick(){
   if(currentUser){
     db.from('trades').insert({
       user_id:currentUser.id, sym:label, side:trade.side,
-      entry:0, exit:0, qty:1, pnl:pnlUSD, pnl_pct:0,
+      entry:0, exit:0, qty:1, pnl:pnlRaw, pnl_pct:0,
       date, time:'09:30', strat:label,
       emotion:'', rating:3, tags:['journalier'], notes:note
     }).select().then(({data})=>{
@@ -1380,7 +1380,7 @@ function parseCSV(text){
         <span style="font-family:var(--mono);font-size:11px">${t.entry.toFixed(2)}</span>
         <span style="font-family:var(--mono);font-size:11px">${t.exit.toFixed(2)}</span>
         <span style="font-family:var(--mono);font-size:11px">${t.qty}</span>
-        <span class="${t.pnl>=0?'pnl-pos':'pnl-neg'}" style="font-size:12px">${fmt(t.pnl)}</span>
+        <span class="${t.pnl>=0?'pnl-pos':'pnl-neg'}" style="font-size:12px">${fmtTrade(t)}</span>
       </div>`
     ).join('')+
     (csvT.length>15?`<div style="text-align:center;color:var(--text3);padding:8px;font-size:11px">
@@ -1716,7 +1716,7 @@ async function loadTradesWithToken(token,base){
           <span class="side-badge side-${t.side.toLowerCase()}">${t.side}</span>
           <span style="color:var(--text3);font-size:11px">${t.date}</span>
           <span style="font-family:var(--mono);font-size:11px">${t.entry.toFixed(2)}</span>
-          <span class="${t.pnl>=0?'pnl-pos':'pnl-neg'}">${fmt(t.pnl)}</span>
+          <span class="${t.pnl>=0?'pnl-pos':'pnl-neg'}">${fmtTrade(t)}</span>
         </div>`).join('')+
       (apiT.length>8?`<div style="text-align:center;color:var(--text3);font-size:11px;padding:6px">... et ${apiT.length-8} autres</div>`:'');
 
@@ -1767,14 +1767,32 @@ function loadDisplayCurrency(){
 }
 loadDisplayCurrency();
 
+function getTradeCurrency(trade){
+  // Lire depuis pnlCurrency ou depuis notes [CUR:XXX]
+  if(trade && trade.pnlCurrency) return trade.pnlCurrency;
+  if(trade && trade.notes){
+    const m = trade.notes.match(/\[CUR:(\w+)\]/);
+    if(m) return m[1];
+  }
+  return 'USD'; // défaut
+}
+
 function convertToDisplay(amount, fromCurrency){
-  var fromRate = FX_RATES[fromCurrency] || 1;
-  var toRate = FX_RATES[DISPLAY_CURRENCY] || 1;
+  if(!fromCurrency || fromCurrency === DISPLAY_CURRENCY) return amount;
+  const fromRate = FX_RATES[fromCurrency] || 1;
+  const toRate   = FX_RATES[DISPLAY_CURRENCY] || 1;
   return amount * (toRate / fromRate);
 }
 
+function fmtTrade(trade){
+  // Affiche le P&L d'un trade converti dans la devise d'affichage
+  const cur = getTradeCurrency(trade);
+  const val = convertToDisplay(trade.pnl, cur);
+  return(val>=0?'+':'-')+DISPLAY_SYMBOL+Math.abs(val).toFixed(2);
+}
+
 function fmt(v, fromCurrency){
-  var val = fromCurrency ? convertToDisplay(v, fromCurrency) : v;
+  const val = convertToDisplay(v, fromCurrency || DISPLAY_CURRENCY);
   return(val>=0?'+':'-')+DISPLAY_SYMBOL+Math.abs(val).toFixed(2);
 }
 
@@ -1793,10 +1811,14 @@ function toast(m){const t=document.getElementById('toast-el');t.textContent=m;t.
 function renderAll(){updStats();drawEquity();drawSess();drawStrat();drawSym();drawKeyStats();drawTable('dash-table');document.getElementById('badge').textContent=T.length;}
 function updateCap(v){cap=parseFloat(v)||10000;localStorage.setItem('tf_cap',cap);renderAll();}
 
+function pnlInDisplay(t){
+  return convertToDisplay(t.pnl, getTradeCurrency(t));
+}
+
 function updStats(){
   const wins=T.filter(t=>t.pnl>0),loss=T.filter(t=>t.pnl<=0);
-  const tot=T.reduce((s,t)=>s+t.pnl,0),wr=T.length?(wins.length/T.length*100):0;
-  const gw=wins.reduce((s,t)=>s+t.pnl,0),gl=Math.abs(loss.reduce((s,t)=>s+t.pnl,0));
+  const tot=T.reduce((s,t)=>s+pnlInDisplay(t),0),wr=T.length?(wins.length/T.length*100):0;
+  const gw=wins.reduce((s,t)=>s+pnlInDisplay(t),0),gl=Math.abs(loss.reduce((s,t)=>s+pnlInDisplay(t),0));
   const pf=gl>0?gw/gl:wins.length>0?999:0;
   document.getElementById('s-pnl').textContent=fmt(tot);document.getElementById('s-pnl').className='stat-value '+(tot>=0?'green':'red');
   const pct=cap>0?(tot/cap*100):0;
@@ -1805,7 +1827,7 @@ function updStats(){
   document.getElementById('s-pf').textContent=pf===999?'∞':pf.toFixed(2);document.getElementById('s-tot').textContent=T.length;document.getElementById('s-wl').textContent=`${wins.length}W / ${loss.length}L`;
   let sc=50;if(T.length>0){sc=Math.round(wr*0.4+Math.min(pf,5)*10+(pct>0?15:0)+Math.min(T.length,20)*0.5);sc=Math.max(0,Math.min(100,sc));}
   document.getElementById('score-num').textContent=sc;document.getElementById('score-pct').textContent=sc;document.getElementById('score-ring').style.strokeDashoffset=163-(163*sc/100);
-  document.getElementById('eq-meta').textContent=`$${cap.toLocaleString()} → ${fmt(cap+tot)}`;
+  document.getElementById('eq-meta').textContent=`${DISPLAY_SYMBOL}${cap.toLocaleString()} → ${fmt(cap+tot)}`;
 }
 function drawEquity(){
   const line=document.getElementById('eq-line'),area=document.getElementById('eq-area'),ph=document.getElementById('eq-ph');
@@ -1862,7 +1884,7 @@ function drawTable(id){
   const rows=f.map(t=>{
     const stars=Array.from({length:5},(_,i)=>`<span class="star${i<t.rating?' filled':''}">★</span>`).join('');
     const tags=t.tags.map(g=>`<span class="tag">${g}</span>`).join('')||'—';
-    return`<tr><td><span class="symbol">${t.sym}</span></td><td><span class="side-badge side-${t.side.toLowerCase()}">${t.side}</span></td><td style="font-family:var(--mono)">${t.date}</td><td style="font-family:var(--mono)">$${t.entry.toFixed(2)}</td><td style="font-family:var(--mono)">$${t.exit.toFixed(2)}</td><td style="font-family:var(--mono)">${t.qty}</td><td><span class="${t.pnl>=0?'pnl-pos':'pnl-neg'}">${fmt(t.pnl)}</span></td><td style="font-family:var(--mono);font-size:11px">${t.pnlPct>=0?'+':''}${t.pnlPct.toFixed(2)}%</td><td><span style="font-size:11px;color:var(--text2)">${t.strat||'—'}</span></td><td><div class="rating">${stars}</div></td><td>${tags}</td><td><button onclick="delTrade(${t.id})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px">🗑</button></td></tr>`;
+    return`<tr><td><span class="symbol">${t.sym}</span></td><td><span class="side-badge side-${t.side.toLowerCase()}">${t.side}</span></td><td style="font-family:var(--mono)">${t.date}</td><td style="font-family:var(--mono)">$${t.entry.toFixed(2)}</td><td style="font-family:var(--mono)">$${t.exit.toFixed(2)}</td><td style="font-family:var(--mono)">${t.qty}</td><td><span class="${t.pnl>=0?'pnl-pos':'pnl-neg'}">${fmtTrade(t)}</span></td><td style="font-family:var(--mono);font-size:11px">${t.pnlPct>=0?'+':''}${t.pnlPct.toFixed(2)}%</td><td><span style="font-size:11px;color:var(--text2)">${t.strat||'—'}</span></td><td><div class="rating">${stars}</div></td><td>${tags}</td><td><button onclick="delTrade(${t.id})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px">🗑</button></td></tr>`;
   }).join('');
   w.innerHTML=`<table><thead><tr><th>Symbole</th><th>Dir</th><th>Date</th><th>Entrée</th><th>Sortie</th><th>Qté</th><th>P&L</th><th>%</th><th>Stratégie</th><th>Note</th><th>Tags</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
 }
