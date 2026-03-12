@@ -215,15 +215,15 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
   </nav>
   <div class="sidebar-footer">
     <div class="user-card" style="flex-direction:column;align-items:flex-start;gap:10px">
-      <div style="display:flex;align-items:center;gap:10px;width:100%">
-        <div class="user-avatar" id="user-avatar">TF</div>
+      <div style="display:flex;align-items:center;gap:10px;width:100%;cursor:pointer" onclick="showPage('settings', document.querySelector('[onclick*=settings]'))">
+        <div class="user-avatar" id="user-avatar" style="cursor:pointer;flex-shrink:0">TF</div>
         <div style="flex:1;min-width:0">
           <div class="user-name" id="user-name">Chargement...</div>
           <div id="user-plan-badge"><span class="plan-badge free">FREE</span></div>
         </div>
       </div>
-      <button id="logout-btn" style="width:100%;padding:7px;border-radius:8px;background:transparent;border:1px solid var(--border2);color:var(--text3);font-size:12px;cursor:pointer;">
-        Déconnexion
+      <button id="logout-btn" onclick="doLogout()" style="width:100%;padding:7px;border-radius:8px;background:transparent;border:1px solid var(--red);color:var(--red);font-size:12px;cursor:pointer;font-weight:600;">
+        🚪 Déconnexion
       </button>
     </div>
   </div>
@@ -264,6 +264,39 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
         <div class="table-header-row"><div class="chart-title">Trades récents</div>
           <div class="table-filters"><button class="filter-pill active" onclick="filt('Tous',this)">Tous</button><button class="filter-pill" onclick="filt('LONG',this)">Long</button><button class="filter-pill" onclick="filt('SHORT',this)">Short</button><button class="filter-pill" onclick="filt('WIN',this)">Wins</button><button class="filter-pill" onclick="filt('LOSS',this)">Losses</button></div>
         </div>
+
+        <!-- Filtres avancés -->
+        <div style="display:flex;flex-wrap:wrap;gap:8px;padding:12px 0 4px;border-top:1px solid var(--border);margin-top:8px">
+
+          <!-- Date -->
+          <select id="dash-filter-date" onchange="applyDashFilters()" style="padding:7px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:12px;cursor:pointer">
+            <option value="">📅 Toutes dates</option>
+            <option value="today">Aujourd'hui</option>
+            <option value="week">Cette semaine</option>
+            <option value="month">Ce mois</option>
+          </select>
+
+          <!-- Prop Firm -->
+          <select id="dash-filter-firm" onchange="applyDashFilters()" style="padding:7px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:12px;cursor:pointer">
+            <option value="">🏢 Toutes firms</option>
+          </select>
+
+          <!-- Type Funded/Challenge -->
+          <select id="dash-filter-type" onchange="applyDashFilters()" style="padding:7px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:12px;cursor:pointer">
+            <option value="">🔖 Tous types</option>
+            <option value="Funded">🟢 Funded</option>
+            <option value="Challenge">🔵 Challenge</option>
+          </select>
+
+          <!-- Symbole -->
+          <select id="dash-filter-sym" onchange="applyDashFilters()" style="padding:7px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:12px;cursor:pointer">
+            <option value="">📈 Tous symboles</option>
+          </select>
+
+          <!-- Reset -->
+          <button onclick="resetDashFilters()" style="padding:7px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-size:12px;cursor:pointer">✕ Reset</button>
+        </div>
+
         <div id="dash-table"><div class="no-results">📭 Aucun trade. Cliquez "+ Ajouter Trade" ou "Importer Tradovate".</div></div>
       </div>
     </div>
@@ -810,7 +843,11 @@ textarea{resize:vertical;min-height:80px;}select option{background:var(--card2);
       <div class="form-group">
         <label>Note ⭐</label>
         <div style="display:flex;gap:6px" id="e-stars">
-          ${[1,2,3,4,5].map(i=>`<span onclick="setEStar(${i})" style="font-size:24px;cursor:pointer;color:var(--text3)" id="e-star-${i}">★</span>`).join('')}
+          <span onclick="setEStar(1)" style="font-size:24px;cursor:pointer;color:var(--text3)" id="e-star-1">★</span>
+          <span onclick="setEStar(2)" style="font-size:24px;cursor:pointer;color:var(--text3)" id="e-star-2">★</span>
+          <span onclick="setEStar(3)" style="font-size:24px;cursor:pointer;color:var(--text3)" id="e-star-3">★</span>
+          <span onclick="setEStar(4)" style="font-size:24px;cursor:pointer;color:var(--text3)" id="e-star-4">★</span>
+          <span onclick="setEStar(5)" style="font-size:24px;cursor:pointer;color:var(--text3)" id="e-star-5">★</span>
         </div>
       </div>
 
@@ -2069,7 +2106,7 @@ function fmt(v){
 function toast(m){const t=document.getElementById('toast-el');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
 
 // RENDER
-function renderAll(){updStats();drawEquity();drawSess();drawStrat();drawSym();drawKeyStats();drawTable('dash-table');document.getElementById('badge').textContent=T.length;}
+function renderAll(){updStats();drawEquity();drawSess();drawStrat();drawSym();drawKeyStats();populateDashFilterOptions();applyDashFilters();document.getElementById('badge').textContent=T.length;}
 function updateCap(v){cap=parseFloat(v)||10000;localStorage.setItem('tf_cap',cap);renderAll();}
 
 function pnlInDisplay(t){ return t.pnl; }
@@ -2169,7 +2206,98 @@ function drawTable(id){
   w.innerHTML=`<table><thead><tr><th>Prop Firm</th><th>Symbole</th><th>Date</th><th>P&L</th><th>%</th><th>Notes</th><th>Tags</th><th>Note</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 function renderJour(){drawTable('jour-table');}
-function filt(f,el){filt_active=f;document.querySelectorAll('.filter-pill').forEach(p=>p.classList.remove('active'));el.classList.add('active');drawTable('dash-table');}
+function filt(f,el){filt_active=f;document.querySelectorAll('.filter-pill').forEach(p=>p.classList.remove('active'));el.classList.add('active');applyDashFilters();}
+
+function populateDashFilterOptions(){
+  // Firms
+  const firmSel = document.getElementById('dash-filter-firm');
+  if(!firmSel) return;
+  const curFirm = firmSel.value;
+  const firms = [...new Set(T.map(t=>(t.strat||'').replace(/\s*\[(Funded|Challenge)\]/,'').replace(/\s*·\s*.+$/,'').trim()).filter(Boolean))].sort();
+  firmSel.innerHTML = '<option value="">🏢 Toutes firms</option>' + firms.map(f=>`<option value="${f}">${f}</option>`).join('');
+  if(curFirm) firmSel.value = curFirm;
+
+  // Symboles
+  const symSel = document.getElementById('dash-filter-sym');
+  const curSym = symSel.value;
+  const syms = [...new Set(T.map(t=>t.sym).filter(s=>s&&s.length<=6&&!/\s/.test(s)))].sort();
+  symSel.innerHTML = '<option value="">📈 Tous symboles</option>' + syms.map(s=>`<option value="${s}">${s}</option>`).join('');
+  if(curSym) symSel.value = curSym;
+}
+
+function applyDashFilters(){
+  const dateF = document.getElementById('dash-filter-date')?.value || '';
+  const firmF = document.getElementById('dash-filter-firm')?.value || '';
+  const typeF = document.getElementById('dash-filter-type')?.value || '';
+  const symF  = document.getElementById('dash-filter-sym')?.value  || '';
+
+  const today = new Date().toISOString().split('T')[0];
+  const weekAgo = new Date(Date.now()-7*86400000).toISOString().split('T')[0];
+  const monthStart = today.slice(0,7)+'-01';
+
+  let f = [...T].sort((a,b)=>new Date(b.date+' '+b.time)-new Date(a.date+' '+a.time));
+
+  // Filtre pills (WIN/LOSS/LONG/SHORT)
+  if(filt_active==='LONG')  f=f.filter(t=>t.side==='LONG');
+  else if(filt_active==='SHORT') f=f.filter(t=>t.side==='SHORT');
+  else if(filt_active==='WIN')   f=f.filter(t=>t.pnl>0);
+  else if(filt_active==='LOSS')  f=f.filter(t=>t.pnl<=0);
+
+  // Date
+  if(dateF==='today')  f=f.filter(t=>t.date===today);
+  else if(dateF==='week')  f=f.filter(t=>t.date>=weekAgo);
+  else if(dateF==='month') f=f.filter(t=>t.date>=monthStart);
+
+  // Firm
+  if(firmF) f=f.filter(t=>(t.strat||'').replace(/\s*\[(Funded|Challenge)\]/,'').replace(/\s*·\s*.+$/,'').trim()===firmF);
+
+  // Type
+  if(typeF) f=f.filter(t=>(t.strat||'').includes('['+typeF+']'));
+
+  // Symbole
+  if(symF) f=f.filter(t=>t.sym===symF);
+
+  drawTableFiltered('dash-table', f);
+}
+
+function resetDashFilters(){
+  const ids = ['dash-filter-date','dash-filter-firm','dash-filter-type','dash-filter-sym'];
+  ids.forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  filt_active='Tous';
+  document.querySelectorAll('.filter-pill').forEach((p,i)=>p.classList.toggle('active',i===0));
+  applyDashFilters();
+}
+
+function drawTableFiltered(id, f){
+  const w=document.getElementById(id);
+  if(!f.length){w.innerHTML=`<div class="no-results">📭 Aucun trade correspondant.</div>`;return;}
+  const rows=f.map(t=>{
+    const stars=Array.from({length:5},(_,i)=>`<span class="star${i<t.rating?' filled':''}">★</span>`).join('');
+    const tags=t.tags&&t.tags.length?t.tags.map(g=>`<span class="tag">${g}</span>`).join(''):'—';
+    const firm = t.strat||'—';
+    const typeMatch = firm.match(/\[(Funded|Challenge)\]/);
+    const typeLabel = typeMatch ? typeMatch[1] : null;
+    const firmClean = firm.replace(/\s*\[(Funded|Challenge)\]/, '');
+    const typeBadge = typeLabel
+      ? `<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;margin-left:4px;${typeLabel==='Funded'?'background:rgba(0,229,160,0.15);color:var(--accent)':'background:rgba(74,158,255,0.15);color:#4a9eff'}">${typeLabel}</span>`
+      : '';
+    const symDisplay = t.sym && t.sym !== firm ? t.sym : '—';
+    const notes = t.notes ? t.notes.replace(/\[CUR:\w+\]\s*\|?\s*/g,'').replace(/\|?\s*Compte:[^|]*/g,'').replace(/Devise:\s*\w+/g,'').replace(/Montant original:\s*[\d.]+/g,'').replace(/\|\s*/g,'').trim()||'—' : '—';
+    return`<tr>
+      <td style="font-size:12px;color:var(--text);max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${firmClean}${typeBadge}</td>
+      <td style="font-family:var(--mono);font-weight:700;color:var(--accent)">${symDisplay}</td>
+      <td style="font-family:var(--mono)">${t.date}</td>
+      <td><span class="${t.pnl>=0?'pnl-pos':'pnl-neg'}">${fmtTrade(t)}</span></td>
+      <td style="font-family:var(--mono);font-size:11px">${t.pnlPct>=0?'+':''}${t.pnlPct.toFixed(2)}%</td>
+      <td style="font-size:11px;color:var(--text3);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${t.notes||''}">${notes}</td>
+      <td>${tags}</td>
+      <td><div class="rating">${stars}</div></td>
+      <td><button onclick="delTrade(${t.id})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px">🗑</button>
+      <button onclick="openEditTrade(${t.id})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px">✏️</button></td>
+    </tr>`;
+  }).join('');
+  w.innerHTML=`<table><thead><tr><th>Prop Firm</th><th>Symbole</th><th>Date</th><th>P&L</th><th>%</th><th>Notes</th><th>Tags</th><th>Note</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+}
 
 function renderAna(){
   const wins=T.filter(t=>t.pnl>0),loss=T.filter(t=>t.pnl<=0);
@@ -2636,10 +2764,18 @@ function openEditTrade(id){
   if(!t) return;
   editId = id;
 
-  document.getElementById('e-pnl').value  = t.pnl;
+  document.getElementById('e-pnl').value  = parseFloat(t.pnl.toFixed(2));
   document.getElementById('e-date').value = t.date;
   document.getElementById('e-sym').value  = (t.sym && t.sym !== t.strat) ? t.sym : '';
-  document.getElementById('e-notes').value = (t.notes||'').replace(/\[CUR:\w+\]\s*\|?\s*/g,'').replace(/\|?\s*Compte:[^|]*/g,'').replace(/\|\s*/g,'').trim();
+  // Nettoyer les notes : retirer [CUR:XXX], Compte:xxx, Devise:xxx, Montant original:xxx
+  const cleanNotes = (t.notes||'')
+    .replace(/\[CUR:\w+\]/g,'')
+    .replace(/Compte:\s*\S+/g,'')
+    .replace(/Devise:\s*\w+/g,'')
+    .replace(/Montant original:\s*[\d.]+/g,'')
+    .replace(/\|\s*/g,'')
+    .trim();
+  document.getElementById('e-notes').value = cleanNotes;
   document.getElementById('e-tags').value  = (t.tags||[]).join(', ');
 
   // Type Funded/Challenge
@@ -2754,24 +2890,12 @@ async function handlePhotoUpload(event){
   if(file.size > 2*1024*1024){ toast('❌ Photo trop grande (max 2MB)'); return; }
   if(!currentUser){ toast('❌ Non connecté'); return; }
 
-  toast('⏳ Upload en cours...');
-
   // Affichage immédiat en local
   const reader = new FileReader();
-  reader.onload = (e) => {
-    const img = document.getElementById('profile-photo-img');
-    const ini = document.getElementById('profile-photo-initials');
-    const ava = document.getElementById('user-avatar-img');
-    img.src = e.target.result;
-    img.style.display = 'block';
-    ini.style.display = 'none';
-    // Aussi mettre à jour l'avatar sidebar
-    if(!ava){
-      const av = document.getElementById('user-avatar');
-      av.innerHTML = `<img id="user-avatar-img" src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
-    } else { ava.src = e.target.result; }
-  };
+  reader.onload = (e) => applyPhoto(e.target.result);
   reader.readAsDataURL(file);
+
+  toast('⏳ Upload en cours...');
 
   // Upload vers Supabase Storage
   try {
@@ -2779,19 +2903,14 @@ async function handlePhotoUpload(event){
     const path = `${currentUser.id}/avatar.${ext}`;
     const { error } = await db.storage.from('profiles').upload(path, file, { upsert: true, contentType: file.type });
     if(error) throw error;
-    // Récupérer l'URL publique
     const { data } = db.storage.from('profiles').getPublicUrl(path);
     const url = data.publicUrl + '?t=' + Date.now();
-    // Sauvegarder l'URL dans la table profiles
     await db.from('profiles').update({ avatar_url: url }).eq('id', currentUser.id);
-    localStorage.setItem('tf_photo_url', url);
+    applyPhoto(url);
     toast('✅ Photo sauvegardée !');
   } catch(e) {
-    // Fallback: garder en localStorage si Supabase échoue
-    const reader2 = new FileReader();
-    reader2.onload = (ev) => { localStorage.setItem('tf_photo', ev.target.result); };
-    reader2.readAsDataURL(file);
-    toast('✅ Photo mise à jour (local)');
+    console.error('Photo upload error:', e);
+    toast('⚠️ Photo sauvegardée localement');
   }
 }
 
